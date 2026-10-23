@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pawlyglot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Demo app for a fictional smart pet collar: simulated GPS, heart rate, activity logs and a just-for-fun pet translator.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/styles.css">
+<script>
+  // Apply a saved theme / motion choice before first paint to avoid a flash.
+  try {
+    var saved = JSON.parse(localStorage.getItem('pawlyglot.v1') || '{}').settings || {};
+    if (saved.theme === 'light' || saved.theme === 'dark') {
+      document.documentElement.dataset.theme = saved.theme;
+      document.documentElement.dataset.themeOwner = 'app';
+    }
+    if (saved.motion === 'reduce' || saved.motion === 'full') document.documentElement.dataset.motion = saved.motion;
+  } catch (e) { /* storage unavailable: use system settings */ }
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <symbol id="i-paw" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><ellipse cx="5.6" cy="10.2" rx="2.1" ry="2.6" transform="rotate(-24 5.6 10.2)"/><ellipse cx="9.4" cy="5.9" rx="2.1" ry="2.7" transform="rotate(-8 9.4 5.9)"/><ellipse cx="14.6" cy="5.9" rx="2.1" ry="2.7" transform="rotate(8 14.6 5.9)"/><ellipse cx="18.4" cy="10.2" rx="2.1" ry="2.6" transform="rotate(24 18.4 10.2)"/><path d="M12 11.3c-2.7 0-5.6 3.3-5.6 5.8 0 1.8 1.3 2.8 2.9 2.8 1.1 0 1.7-.6 2.7-.6s1.6.6 2.7.6c1.6 0 2.9-1 2.9-2.8 0-2.5-2.9-5.8-5.6-5.8z"/></g></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v10.5a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3.5 6.3v13.7L9 17.7l6 2.3 5.5-2.3V4L15 6.3z"/><path d="M9 4v13.7M15 6.3V20"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3s-7.6-4.6-9.3-9.5C1.5 7.5 3.7 4.3 7.1 4.3c2 0 3.6 1.1 4.9 2.9 1.3-1.8 2.9-2.9 4.9-2.9 3.4 0 5.6 3.2 4.4 6.5-1.7 4.9-9.3 9.5-9.3 9.5z"/></symbol>
+  <symbol id="i-heart-fill" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 20.3s-7.6-4.6-9.3-9.5C1.5 7.5 3.7 4.3 7.1 4.3c2 0 3.6 1.1 4.9 2.9 1.3-1.8 2.9-2.9 4.9-2.9 3.4 0 5.6 3.2 4.4 6.5-1.7 4.9-9.3 9.5-9.3 9.5z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 6v8a2.5 2.5 0 0 1-2.5 2.5H10L5.5 20.5v-4h-1"/><path d="M4 6v8a2.5 2.5 0 0 0 1.5 2.3"/><path d="M8.5 8.5v3M12 7v6M15.5 8.5v3"/></symbol>
+  <symbol id="i-journal" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17.5" rx="2"/><path d="M9 3.5V2.5M15 3.5V2.5M8.5 9h7M8.5 12.5h7M8.5 16h4.5"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.3 6.3a7.8 7.8 0 0 1 0 11.4"/></symbol>
+  <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M6.7 6.8a7.5 7.5 0 1 0 10.6 0"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 5.3v13.4a.8.8 0 0 0 1.2.7l10.6-6.7a.8.8 0 0 0 0-1.4L8.7 4.6a.8.8 0 0 0-1.2.7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 5v14M15.5 5v14"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M14.5 5.5l4 4L8 20H4v-4z"/><path d="M12.5 7.5l4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/><path d="M10 11v5.5M14 11v5.5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+  <symbol id="i-signal" viewBox="0 0 24 24"><path d="M5 19v-2M9.5 19v-5M14 19v-8M18.5 19V8"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.6A7.8 7.8 0 1 1 9.4 4.5a6.3 6.3 0 0 0 10.1 10.1z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+  <symbol id="i-sofa" viewBox="0 0 24 24"><path d="M5 11V8.5A2.5 2.5 0 0 1 7.5 6h9A2.5 2.5 0 0 1 19 8.5V11"/><path d="M3 13a2 2 0 0 1 4 0v1.5h10V13a2 2 0 0 1 4 0v4.5H3z"/><path d="M5.5 17.5V20M18.5 17.5V20"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3 11.5h18c0 4.4-4 7.5-9 7.5s-9-3.1-9-7.5z"/><path d="M8 21h8"/><circle cx="10" cy="8.2" r="1.3"/><circle cx="14.2" cy="7.6" r="1.3"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18h7.3a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7h7.3"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></symbol>
+  <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M5.6 6.5c2.9 1.4 4.4 3.3 4.4 5.5s-1.5 4.1-4.4 5.5M18.4 6.5c-2.9 1.4-4.4 3.3-4.4 5.5s1.5 4.1 4.4 5.5"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.5 3 8 7 9.5 4-1.5 7-5 7-9.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4.3 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4.5M12 17.2v.1"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 3.5c.6 4.3 2.6 6.3 6.9 6.9-4.3.6-6.3 2.6-6.9 6.9-.6-4.3-2.6-6.3-6.9-6.9 4.3-.6 6.3-2.6 6.9-6.9z"/><path d="M18.5 15.5c.3 1.7 1 2.4 2.5 2.7-1.5.3-2.2 1-2.5 2.6-.3-1.6-1-2.3-2.5-2.6 1.5-.3 2.2-1 2.5-2.7z"/></symbol>
+  <symbol id="i-pill" viewBox="0 0 24 24"><path d="M10.2 4.9a4.6 4.6 0 0 1 6.5 6.5l-5.3 5.3a4.6 4.6 0 0 1-6.5-6.5z"/><path d="m7.6 7.6 6.5 6.5"/></symbol>
+  <symbol id="i-stethoscope" viewBox="0 0 24 24"><path d="M5.5 3.5H4.5v5a4.5 4.5 0 0 0 9 0v-5h-1"/><path d="M9 13v1.5a5 5 0 0 0 10 0V12"/><circle cx="19" cy="10" r="2"/></symbol>
+  <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.5"/><circle cx="6" cy="17.5" r="2.5"/><path d="M8.1 7.9 20 17M8.1 16.1 20 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol>
+  <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M10 14.3V5a2 2 0 0 1 4 0v9.3a4 4 0 1 1-4 0z"/><path d="M12 9v7.5"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3M3 12h7"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14a4.4 4.4 0 0 0 7 0M9 9.5v.5M15 9.5v.5"/></symbol>
+  <symbol id="i-umbrella" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6.5a2 2 0 0 1-4 0M12 3v-.5"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24"><path d="M4 17.5 3 7.5l5 4 4-6.5 4 6.5 5-4-1 10z"/><path d="M4.5 20.5h15"/></symbol>
+  <symbol id="i-ear" viewBox="0 0 24 24"><path d="M6.5 9a5.5 5.5 0 0 1 11 0c0 3.2-3.2 4.3-3.2 7a3 3 0 0 1-5.8 1"/><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.4-1.5 2-1.5 3"/></symbol>
+  <symbol id="i-collar" viewBox="0 0 24 24"><rect x="7" y="5.5" width="10" height="13" rx="3"/><path d="M10 10h4M10 13.5h4M3 12h4M17 12h4"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24"><path d="M4.5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M16.5 10.5h1.5a2.5 2.5 0 0 1 0 5h-1.6M8 3.5v2.5M12 3.5v2.5"/></symbol>
+  <symbol id="i-exclaim" viewBox="0 0 24 24"><path d="M12 6.5v7.5M12 17.6v.2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3.5 8.5 4.5-8.5 4.5L3.5 8z"/><path d="m3.5 12 8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <div class="sidebar">
+    <nav class="nav" aria-label="Main">
+    <div class="sidebar__top">
+      <a class="brand" href="#home" aria-label="Pawlyglot home" data-app-name-label>
+        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="brand__bubble" d="M7 3.5h18A4.5 4.5 0 0 1 29.5 8v12a4.5 4.5 0 0 1-4.5 4.5H14l-6.5 5v-5H7A4.5 4.5 0 0 1 2.5 20V8A4.5 4.5 0 0 1 7 3.5z"/><use href="#i-paw" x="6" y="3" width="20" height="20" class="brand__paw"/></svg>
+        <span class="brand__name" data-app-name>Pawlyglot</span>
+      </a>
+      <span class="badge badge--demo" title="All data in this app is simulated">Demo</span>
+    </div>
+      <ul class="nav__list">
+        <li><a class="nav__link" href="#home" data-route-link="home"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg><span class="nav__label">Home</span></a></li>
+        <li><a class="nav__link" href="#map" data-route-link="map"><svg class="icon" aria-hidden="true"><use href="#i-map"/></svg><span class="nav__label">Map</span></a></li>
+        <li><a class="nav__link" href="#health" data-route-link="health"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg><span class="nav__label">Health</span></a></li>
+        <li><a class="nav__link" href="#translator" data-route-link="translator"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg><span class="nav__label">Translator</span></a></li>
+        <li><a class="nav__link" href="#logs" data-route-link="logs"><svg class="icon" aria-hidden="true"><use href="#i-journal"/></svg><span class="nav__label">Logs</span></a></li>
+        <li><a class="nav__link" href="#preferences" data-route-link="preferences"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg><span class="nav__label">Settings</span></a></li>
+      </ul>
+    </nav>
+    <section class="pack" aria-labelledby="pack-title">
+      <h2 class="pack__title" id="pack-title">Your pack</h2>
+      <ul class="pack__list" id="pack-list"></ul>
+      <button class="btn btn-tertiary btn-sm pack__add" type="button" data-action="add-pet"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add a pet</button>
+      <p class="sidebar__foot" id="sidebar-foot">Simulated data. Not connected to a real collar.</p>
+    </section>
+  </div>
+
+  <div class="main-col">
+    <header class="topbar">
+      <div class="topbar__row">
+        <a class="brand brand--compact" href="#home" aria-label="Pawlyglot home" data-app-name-label>
+          <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="brand__bubble" d="M7 3.5h18A4.5 4.5 0 0 1 29.5 8v12a4.5 4.5 0 0 1-4.5 4.5H14l-6.5 5v-5H7A4.5 4.5 0 0 1 2.5 20V8A4.5 4.5 0 0 1 7 3.5z"/><use href="#i-paw" x="6" y="3" width="20" height="20" class="brand__paw"/></svg>
+          <span class="brand__name" data-app-name>Pawlyglot</span>
+        </a>
+        <span class="badge badge--demo topbar__badge" title="All data in this app is simulated">Demo</span>
+        <p class="live-status" id="live-status"></p>
+        <div class="topbar__actions">
+          <button class="icon-btn" type="button" id="btn-pause" data-action="toggle-pause" aria-label="Pause live data" title="Pause live data"><svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg></button>
+          <button class="icon-btn" type="button" id="btn-quiet" data-action="toggle-quiet" aria-pressed="false" aria-label="Quiet mode" title="Quiet mode: silence every voice box"><svg class="icon" aria-hidden="true"><use href="#i-volume"/></svg></button>
+          <button class="btn btn-secondary btn-sm topbar__demo" type="button" id="btn-demo" data-action="open-demo" aria-label="Demo controls" title="Demo controls"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg><span>Demo controls</span></button>
+          <a class="icon-btn topbar__settings" href="#preferences" data-route-link="preferences" aria-label="Settings" title="Settings"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></a>
+        </div>
+      </div>
+      <div class="pet-chips" id="pet-chips" role="group" aria-label="Choose a pet"></div>
+    </header>
+    <main class="main" id="main-content" tabindex="-1">
+      <noscript><p class="noscript">This demo needs JavaScript to run the simulated collar.</p></noscript>
+    </main>
+  </div>
+
+  <nav class="tabbar" aria-label="Main">
+    <a class="tabbar__link" href="#home" data-route-link="home"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></a>
+    <a class="tabbar__link" href="#map" data-route-link="map"><svg class="icon" aria-hidden="true"><use href="#i-map"/></svg><span>Map</span></a>
+    <a class="tabbar__link" href="#health" data-route-link="health"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg><span>Health</span></a>
+    <a class="tabbar__link" href="#translator" data-route-link="translator"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg><span>Translate</span></a>
+    <a class="tabbar__link" href="#logs" data-route-link="logs"><svg class="icon" aria-hidden="true"><use href="#i-journal"/></svg><span>Logs</span></a>
+  </nav>
+</div>
+
+<div class="toasts" id="toasts" role="region" aria-label="Notifications"></div>
+<div class="visually-hidden" id="announcer" aria-live="polite" aria-atomic="true"></div>
+
+<script src="js/config.js" defer></script>
+<script src="js/phrases.js" defer></script>
+<script src="js/util.js" defer></script>
+<script src="js/avatars.js" defer></script>
+<script src="js/sim.js" defer></script>
+<script src="js/store.js" defer></script>
+<script src="js/voice.js" defer></script>
+<script src="js/charts.js" defer></script>
+<script src="js/map.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/dialogs.js" defer></script>
+<script src="js/views/home.js" defer></script>
+<script src="js/views/map.js" defer></script>
+<script src="js/views/health.js" defer></script>
+<script src="js/views/translator.js" defer></script>
+<script src="js/views/logs.js" defer></script>
+<script src="js/views/settings.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>
