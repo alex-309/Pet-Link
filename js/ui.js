@@ -16,9 +16,9 @@
     const m = C.MOODS[mood] || C.MOODS.happy;
     return `<span class="chip">${icon(m.icon)}${m.label}</span>`;
   }
-  function activityChip(activity) {
-    const a = C.ACTIVITIES[activity] || C.ACTIVITIES.resting;
-    return `<span class="chip">${icon(a.icon)}${a.label}</span>`;
+  function activityChip(activity, species) {
+    const act = C.ACTIVITIES[activity] ? activity : 'resting';
+    return `<span class="chip">${icon(C.ACTIVITIES[act].icon)}${U.esc(C.activityLabel(species, act))}</span>`;
   }
   function battery(pct) {
     const p = Math.round(pct);
@@ -152,9 +152,13 @@
           </div>`,
         initialFocus: '[data-close]',
         onOpen(el) {
-          el.querySelector('#confirm-ok').addEventListener('click', () => closeDialog('ok'));
+          // Resolve on the click itself; the dialog's close event arrives asynchronously.
+          el.querySelector('#confirm-ok').addEventListener('click', () => {
+            resolve(true);
+            closeDialog('ok');
+          });
         },
-        onClose(rv) { resolve(rv === 'ok'); },
+        onClose() { resolve(false); }, // no effect if already resolved by the confirm button
       });
     });
   }
@@ -162,12 +166,13 @@
   // ---- live values -------------------------------------------------------------------
   function distanceText(r) {
     if (r.zone === 'Home') return 'At home';
+    if (r.zone === 'Backyard') return 'In the backyard';
     const h = Paw.sim.fromHome(r);
     return U.fmtDistance(h.meters, { short: true }) + ' ' + (U.COMPASS_WORDS[h.dir] || '') + ' of home';
   }
   function safeStatus(r) {
     if (r.inZone) return status('good', 'Inside safe zone');
-    return C.ACTIVITIES[r.activity].withOwner ? status('good', 'Out on a walk') : status('warning', 'Outside safe zone');
+    return r.route && C.ACTIVITIES[r.activity].withOwner ? status('good', 'Out on a walk') : status('warning', 'Outside safe zone');
   }
   function breathText(pet, r) {
     if (pet.species === 'dog' && r.breath > 60) return 'Panting';
@@ -177,9 +182,9 @@
     hr: (pet, r) => String(Math.round(r.hr)),
     'hr-status': (pet, r) => { const s = Paw.sim.hrStatus(pet, r); return status(s.level, s.label); },
     'hr-note': (pet, r) => Paw.sim.hrStatus(pet, r).note,
-    activity: (pet, r) => activityChip(r.activity),
-    'activity-text': (pet, r) => C.ACTIVITIES[r.activity].label,
-    'pack-sub': (pet, r) => C.ACTIVITIES[r.activity].label + ' · ' + Math.round(r.hr) + ' bpm',
+    activity: (pet, r) => activityChip(r.activity, pet.species),
+    'activity-text': (pet, r) => C.activityLabel(pet.species, r.activity),
+    'pack-sub': (pet, r) => C.activityLabel(pet.species, r.activity) + ' · ' + Math.round(r.hr) + ' bpm',
     zone: (pet, r) => r.zone,
     distance: (pet, r) => distanceText(r),
     safe: (pet, r) => safeStatus(r),

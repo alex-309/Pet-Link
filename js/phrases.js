@@ -337,6 +337,64 @@
     },
   };
 
+  // Signature lines for the other species, filed under a mood and merged into the bank.
+  const signature = {
+    en: {
+      rabbit: { happy: 'I just did a binky! Did you see? I will do another one.', hungry: "These carrots won't eat themselves. I'm helping.", sassy: "I thumped my foot. That means I'm in charge.", loving: 'Pet my ears gently. Yes, exactly like that.' },
+      bird: { excited: 'I learned a new whistle! Listen! Again! Again!', happy: 'What a pretty bird! Oh wait, that is me.', playful: "I'm going to sit on your head now. Don't move.", sassy: 'I said what I said. Then I said it again, louder.' },
+      hamster: { excited: 'I ran on my wheel for an hour. Went nowhere. Loved it.', hungry: 'My cheeks are full of snacks. I regret nothing.', curious: "I'm digging a secret tunnel. Don't tell anyone.", sleepy: 'It is daytime. Hamster rules say that means sleep.' },
+      horse: { hungry: 'Hay is my love language.', playful: "Race you to the far fence! You'll lose.", sassy: "I'm not stubborn. I'm thinking very slowly on purpose.", loving: "Scratch my neck right there. Perfect. Don't stop." },
+      turtle: { sleepy: 'Slow and steady. Mostly slow. With a nap.', curious: "I'm going over there. I'll arrive sometime tomorrow.", happy: 'Heat lamp on. Feet out. Life is good.', sassy: "No rush. I've got all the time in the world. And a shell." },
+    },
+    es: {
+      rabbit: { happy: '¡Acabo de dar un salto de alegría! ¿Lo viste? Voy a dar otro.', hungry: 'Estas zanahorias no se van a comer solas. Yo ayudo.', sassy: 'Di un golpe con la pata. Eso significa que aquí mando yo.', loving: 'Acaríciame las orejas con cuidado. Sí, justo así.' },
+      bird: { excited: '¡Aprendí un silbido nuevo! ¡Escucha! ¡Otra vez! ¡Otra vez!', happy: '¡Qué pájaro tan lindo! Ah, espera, soy yo.', playful: 'Ahora me voy a sentar en tu cabeza. No te muevas.', sassy: 'Dije lo que dije. Y luego lo repetí más fuerte.' },
+      hamster: { excited: 'Corrí en mi rueda durante una hora. No llegué a ningún lado. Me encantó.', hungry: 'Tengo los cachetes llenos de comida. No me arrepiento de nada.', curious: 'Estoy cavando un túnel secreto. No se lo digas a nadie.', sleepy: 'Es de día. Según las reglas de los hámsteres, eso significa dormir.' },
+      horse: { hungry: 'El heno es mi lenguaje del amor.', playful: '¡Una carrera hasta la cerca del fondo! Vas a perder.', sassy: 'No es terquedad. Estoy pensando muy despacio a propósito.', loving: 'Ráscame el cuello justo ahí. Perfecto. No pares.' },
+      turtle: { sleepy: 'Despacio y sin prisa. Sobre todo sin prisa. Y con siesta.', curious: 'Voy para allá. Llegaré en algún momento de mañana.', happy: 'Lámpara de calor encendida. Patitas afuera. La vida es bella.', sassy: 'Sin prisa. Tengo todo el tiempo del mundo. Y un caparazón.' },
+    },
+    fr: {
+      rabbit: { happy: "Je viens de faire un binky ! Tu as vu ? J'en fais un autre.", hungry: 'Ces carottes ne vont pas se manger toutes seules. Je donne un coup de main.', sassy: "J'ai tapé de la patte. Ça veut dire que c'est moi le chef.", loving: 'Caresse-moi les oreilles doucement. Oui, exactement comme ça.' },
+      bird: { excited: "J'ai appris un nouveau sifflement ! Écoute ! Encore ! Encore !", happy: "Quel joli oiseau ! Ah, attends, c'est moi.", playful: 'Je vais me poser sur ta tête. Ne bouge pas.', sassy: "J'ai dit ce que j'ai dit. Puis je l'ai répété plus fort." },
+      hamster: { excited: "J'ai couru une heure dans ma roue. Sans bouger d'un centimètre. J'ai adoré.", hungry: 'Mes joues sont pleines de graines. Je ne regrette rien.', curious: 'Je creuse un tunnel secret. Ne le dis à personne.', sleepy: "Il fait jour. Selon le règlement des hamsters, c'est l'heure de dormir." },
+      horse: { hungry: "Le foin, c'est ma façon de dire je t'aime.", playful: "Course jusqu'à la clôture du fond ! Tu vas perdre.", sassy: "Ce n'est pas de l'entêtement. Je réfléchis très lentement, exprès.", loving: "Gratte-moi l'encolure, juste là. Parfait. N'arrête pas." },
+      turtle: { sleepy: 'Lentement mais sûrement. Surtout lentement. Et avec une sieste.', curious: 'Je vais là-bas. J\'arriverai demain, à un moment.', happy: 'Lampe chauffante allumée. Pattes dehors. La vie est belle.', sassy: "Rien ne presse. J'ai tout mon temps. Et une carapace." },
+    },
+    de: {
+      rabbit: { happy: "Ich hab gerade einen Freudensprung gemacht! Hast du's gesehen? Gleich noch einer.", hungry: 'Diese Karotten essen sich nicht von allein. Ich helfe mit.', sassy: 'Ich habe mit dem Fuß geklopft. Das heißt: Hier bestimme ich.', loving: 'Streichel sanft meine Ohren. Ja, genau so.' },
+      bird: { excited: 'Ich habe einen neuen Pfiff gelernt! Hör zu! Nochmal! Nochmal!', happy: 'Was für ein hübscher Vogel! Ach, warte, das bin ich.', playful: 'Ich setze mich jetzt auf deinen Kopf. Nicht bewegen.', sassy: 'Ich habe gesagt, was ich gesagt habe. Und dann nochmal lauter.' },
+      hamster: { excited: 'Ich bin eine Stunde im Laufrad gerannt. Bin nirgendwo angekommen. Herrlich.', hungry: 'Meine Backen sind voller Snacks. Ich bereue nichts.', curious: 'Ich grabe einen geheimen Tunnel. Verrat es niemandem.', sleepy: 'Es ist Tag. Laut Hamsterregeln heißt das: schlafen.' },
+      horse: { hungry: 'Heu ist meine Liebessprache.', playful: 'Wettrennen bis zum hinteren Zaun! Du verlierst.', sassy: 'Ich bin nicht stur. Ich denke absichtlich sehr langsam nach.', loving: 'Kratz mich genau da am Hals. Perfekt. Nicht aufhören.' },
+      turtle: { sleepy: 'Langsam, aber sicher. Vor allem langsam. Und mit Nickerchen.', curious: 'Ich gehe da rüber. Ankunft irgendwann morgen.', happy: 'Wärmelampe an. Beine raus. Das Leben ist schön.', sassy: 'Keine Eile. Ich habe alle Zeit der Welt. Und einen Panzer.' },
+    },
+    it: {
+      rabbit: { happy: "Ho appena fatto un salto di gioia! L'hai visto? Ne faccio un altro.", hungry: 'Queste carote non si mangiano da sole. Do una mano.', sassy: 'Ho battuto la zampa. Vuol dire che qui comando io.', loving: 'Accarezzami le orecchie con delicatezza. Sì, proprio così.' },
+      bird: { excited: 'Ho imparato un fischio nuovo! Ascolta! Ancora! Ancora!', happy: "Che bell'uccellino! Ah, aspetta, sono io.", playful: 'Adesso mi siedo sulla tua testa. Non muoverti.', sassy: "Ho detto quello che ho detto. Poi l'ho ripetuto più forte." },
+      hamster: { excited: "Ho corso un'ora sulla mia ruota. Senza spostarmi di un millimetro. Fantastico.", hungry: 'Ho le guance piene di semi. Non mi pento di niente.', curious: 'Sto scavando un tunnel segreto. Non dirlo a nessuno.', sleepy: 'È giorno. Secondo le regole dei criceti, vuol dire nanna.' },
+      horse: { hungry: "Il fieno è il mio linguaggio dell'amore.", playful: 'Gara fino alla staccionata in fondo! Perderai.', sassy: 'Non è testardaggine. Sto pensando molto lentamente, apposta.', loving: 'Grattami il collo proprio lì. Perfetto. Non smettere.' },
+      turtle: { sleepy: 'Piano piano. Soprattutto piano. E con un pisolino.', curious: 'Vado laggiù. Arriverò domani, prima o poi.', happy: 'Lampada riscaldante accesa. Zampe fuori. La vita è bella.', sassy: 'Nessuna fretta. Ho tutto il tempo del mondo. E un guscio.' },
+    },
+    pt: {
+      rabbit: { happy: 'Acabei de dar um pulinho de alegria! Você viu? Vou dar outro.', hungry: 'Essas cenouras não vão se comer sozinhas. Eu ajudo.', sassy: 'Bati a pata no chão. Isso quer dizer que quem manda aqui sou eu.', loving: 'Faz carinho nas minhas orelhas com cuidado. Isso, assim mesmo.' },
+      bird: { excited: 'Aprendi um assobio novo! Escuta! De novo! De novo!', happy: 'Que passarinho lindo! Ah, espera, sou eu.', playful: 'Agora vou sentar na sua cabeça. Não se mexe.', sassy: 'Eu disse o que disse. Depois repeti mais alto.' },
+      hamster: { excited: 'Corri uma hora na minha rodinha. Não saí do lugar. Amei.', hungry: 'Minhas bochechas estão cheias de petiscos. Não me arrependo de nada.', curious: 'Estou cavando um túnel secreto. Não conta para ninguém.', sleepy: 'É de dia. Pelas regras dos hamsters, isso significa dormir.' },
+      horse: { hungry: 'Feno é a minha linguagem do amor.', playful: 'Corrida até a cerca do fundo! Você vai perder.', sassy: 'Não é teimosia. Estou pensando bem devagar, de propósito.', loving: 'Coça meu pescoço bem aí. Perfeito. Não para.' },
+      turtle: { sleepy: 'Devagar e sempre. Mais devagar do que sempre. E com soneca.', curious: 'Vou ali. Chego amanhã, em algum momento.', happy: 'Lâmpada de aquecimento ligada. Patinhas para fora. A vida é boa.', sassy: 'Sem pressa. Tenho todo o tempo do mundo. E um casco.' },
+    },
+    ja: {
+      rabbit: { happy: 'いまジャンプしちゃった！見た？もう一回やるね。', hungry: 'このにんじん、勝手には減らないからね。手伝ってあげる。', sassy: '足でダンってしたよ。ここではわたしがボスって意味。', loving: '耳をやさしくなでて。そう、そんな感じ。' },
+      bird: { excited: '新しい口笛をおぼえたよ！聞いて！もう一回！もう一回！', happy: 'なんてかわいい鳥！あ、待って、わたしだった。', playful: 'いまからきみの頭にとまるね。動かないで。', sassy: '言ったことは言ったこと。それからもっと大きな声でもう一回言ったよ。' },
+      hamster: { excited: '回し車で1時間走ったよ。一歩も進んでないけど、最高だった。', hungry: 'ほっぺがおやつでパンパン。後悔はしてない。', curious: 'ひみつのトンネルをほってるの。だれにも言わないでね。', sleepy: 'いまは昼間。ハムスターのルールでは、寝る時間ってこと。' },
+      horse: { hungry: '干し草は、わたしの愛の言葉。', playful: '奥のさくまで競走だ！きみの負けだよ。', sassy: 'がんこなんじゃないよ。わざとすごくゆっくり考えてるの。', loving: '首のそこをかいて。完ぺき。やめないで。' },
+      turtle: { sleepy: 'ゆっくり着実に。とくにゆっくり。お昼寝つきで。', curious: 'あっちに行くね。明日のどこかで着く予定。', happy: 'ヒーターオン。足を出して。人生っていいね。', sassy: '急がない、急がない。時間はたっぷりあるし、甲羅もある。' },
+    },
+  };
+  for (const lang of Object.keys(signature)) {
+    for (const species of Object.keys(signature[lang])) {
+      for (const [mood, line] of Object.entries(signature[lang][species])) bank[lang][mood][species] = [line];
+    }
+  }
+
   // French typography: no-break space before ! ? : ; and inside « ».
   for (const mood of Object.keys(bank.fr)) {
     for (const group of Object.keys(bank.fr[mood])) {
@@ -379,6 +437,61 @@
       loving: ['Purrrrrrr…', '*head bonk* Mrrp.', '*slow blink*'],
       nervous: ['*low meow*', 'Mew…?', '*tail puffs up*'],
       sassy: ['Mrow.', '*flicks tail* Meow.', 'Hmph. Mew.'],
+    },
+    rabbit: {
+      happy: ['*binky!*', '*soft teeth purr*'],
+      playful: ['*zoomies around the yard*', '*hop hop*'],
+      excited: ['*double binky!*', '*thump thump*'],
+      hungry: ['*nose wiggles at the fridge*', '*crunch crunch*'],
+      sleepy: ['*flops over*', '*tiny sigh*'],
+      curious: ['*nose twitch*', '*ears up*'],
+      loving: ['*nose boop*', '*soft teeth purr*'],
+      nervous: ['*THUMP*', '*freezes*'],
+      sassy: ['*thump*', '*turns its back on you*'],
+    },
+    bird: {
+      happy: ['Tweet tweet!', '*cheerful whistle*'],
+      playful: ['*bobs head*', 'Peekaboo!'],
+      excited: ['SQUAWK!', '*whistles a tune*'],
+      hungry: ['*rattles seed bowl*', 'Cracker? Cracker!'],
+      sleepy: ['*fluffs up*', '*tiny chirp*'],
+      curious: ['*head tilt* Chirp?', '*peeks out*'],
+      loving: ['*preens your hair*', '*soft chatter*'],
+      nervous: ['*alarm chirp*', '*feathers flat*'],
+      sassy: ['*dramatic squawk*', 'Hmph. Tweet.'],
+    },
+    hamster: {
+      happy: ['*happy squeak*', '*wheel squeak*'],
+      playful: ['*rolls in a ball*', '*squeak squeak*'],
+      excited: ['*wheel spinning fast*', 'SQUEAK!'],
+      hungry: ['*stuffs cheeks*', '*nibble nibble*'],
+      sleepy: ['*curls up in bedding*', '*tiny yawn*'],
+      curious: ['*whiskers twitch*', '*sniff sniff*'],
+      loving: ['*climbs onto your hand*', '*soft squeak*'],
+      nervous: ['*freezes*', '*tiny squeak?*'],
+      sassy: ['*turns away*', '*kicks bedding*'],
+    },
+    horse: {
+      happy: ['Neigh!', '*happy nicker*'],
+      playful: ['*bucks playfully*', '*prances*'],
+      excited: ['*whinny!*', '*snort snort*'],
+      hungry: ['*stares at the hay*', '*impatient hoof paw*'],
+      sleepy: ['*sleepy snort*', '*rests a hoof*'],
+      curious: ['*ears forward*', '*sniffs the air*'],
+      loving: ['*soft nicker*', '*nudges your shoulder*'],
+      nervous: ['*snort!*', '*ears back*'],
+      sassy: ['*flicks tail*', '*long sigh through the nostrils*'],
+    },
+    turtle: {
+      happy: ['*slow blink*', '*stretches neck*'],
+      playful: ['*slowly pushes a strawberry*', '*tiny splash*'],
+      excited: ['*walks slightly faster*', '*neck all the way out*'],
+      hungry: ['*stares at the lettuce*', '*crunch*'],
+      sleepy: ['*pulls into shell*', '*very slow blink*'],
+      curious: ['*peeks out of shell*', '*slow head turn*'],
+      loving: ['*rests head on your finger*', '*slow blink*'],
+      nervous: ['*hides in shell*', '*tiny hiss*'],
+      sassy: ['*turns around very slowly*', '*hiss.*'],
     },
   };
 

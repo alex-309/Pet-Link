@@ -88,7 +88,7 @@
     const st = Paw.store.statsFor(pet.id);
     const total = C.ACTIVITY_ORDER.reduce((s, a) => s + (st.bySec[a] || 0), 0);
     const items = C.ACTIVITY_ORDER.map((a) => ({
-      label: C.ACTIVITIES[a].label, icon: C.ACTIVITIES[a].icon, value: st.bySec[a] || 0, display: U.fmtDuration(st.bySec[a] || 0),
+      label: C.activityLabel(pet.species, a), icon: C.ACTIVITIES[a].icon, value: st.bySec[a] || 0, display: U.fmtDuration(st.bySec[a] || 0),
     }));
     Paw.charts.bars(el, { items, animate, color: ui().petColor(pet), label: `Time by activity today for ${pet.name}`, empty: 'No activity recorded yet today.' });
     root.querySelector('#act-table').innerHTML = Paw.charts.table(`Time by activity today for ${pet.name}`, ['Activity', 'Time', 'Share of day so far'],

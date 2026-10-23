@@ -1,6 +1,6 @@
-# Pawlyglot
+# Pet-Link
 
-A demo app for a fictional smart pet collar: live location, heart rate and activity tracking, logs, and a just-for-fun pet translator that reads your pet's made-up thoughts out loud in seven languages.
+A demo app for a fictional smart pet collar: live location, heart rate and activity tracking, logs, and a just-for-fun pet translator. You can talk to your pet and hear it answer, or listen in on its made-up thoughts, out loud in seven languages.
 
 > **Everything is simulated.** The app isn't connected to any device. Locations, health readings and translations are generated for demonstration. They are not real, medical or veterinary information.
 
@@ -23,15 +23,29 @@ There's nothing to install or build.
 | Home | Every pet at a glance: live heart rate, activity, location, latest translation and a translator switch |
 | Map | An illustrated neighborhood with each collar's position and recent path, a resizable safe zone, alerts when a pet leaves it on its own, and **Ping collar** |
 | Health | Live heart rate with an ECG-style trace and the usual resting range, today's distance, steps, active time, sleep, temperature and breathing, plus 5-minute, 1-hour and 12-hour history |
-| Translator | The collar's voice box: power, volume and mute, language (English, Spanish, French, German, Italian, Portuguese, Japanese), voice style, **Listen now**, replay and a speaker test |
+| Translator | A conversation with your pet: type, tap a suggestion or use the microphone, and it answers out loud. **Listen in** hears what it's thinking. Also the collar's voice box: power, volume and mute, language (English, Spanish, French, German, Italian, Portuguese, Japanese), voice, voice style and a speaker test |
 | Logs | Thoughts and feelings plus activity (walks, meals, naps, location, health and collar events), with filters, search, your own entries, and CSV or JSON export |
-| Settings | Manage up to six pets, theme, animation, units, demo options, data, and the legal notes |
+| Settings | Manage up to six pets (dogs, cats, rabbits, birds, hamsters, horses and turtles), theme, animation, units, demo options, the language you speak to your pets, data, and the legal notes |
+
+## Talking to your pet
+
+On the Translator page, say something to the selected pet. It understands greetings, walks, food, play, bedtime, baths and vet visits, praise, scolding and "How are you?" in all seven languages, and answers in a way that suits its species and mood. Anything else gets a playful answer anyway. Replies are always in the pet's translator language, so you can ask in English and hear the answer in French. Every exchange is saved in Logs with what you said.
+
+- **Typing** works in every browser.
+- **The microphone** works in Chrome, Edge and Safari. Firefox doesn't support speech recognition, so the button is hidden there. Pet-Link asks before using it the first time. Pick the language you speak in Settings → Talking to pets.
+
+## Voices
+
+Pets speak with the text-to-speech voices on your device. Each pet's voice box has a **Voice** menu that lists the voices for its language.
+
+If a language has no voice on the device, French on some computers for example, the voice box says so, shows how to add one on that kind of device, and speaks the same line in a language that does have a voice until you add it. The text still appears in the original language. After adding a voice, reload the page.
 
 ## Presenting tips
 
-- **Demo controls** (top bar) make a pet sleep, eat, walk, play or run, say something on cue, wander past the safe zone, get spooked (heart rate jumps) or drain the battery. You can also speed the simulation up to 4×.
+- **Demo controls** (top bar) make a pet sleep, eat, walk (dogs and horses), play or run, say something on cue, wander past the safe zone, get spooked (heart rate jumps) or drain the battery. You can also speed the simulation up to 4×.
 - **Quiet mode** (speaker icon) silences every voice box. Translations still appear as text.
 - **Pause** (pause icon) freezes all live data.
+- **Sun/moon** switches between the light "day at the park" theme and the dark "evening walk" theme. Settings also has a "Match device" option.
 - Browsers only allow sound after the first click or tap on the page.
 - On iPhone and iPad, speech always follows the device volume; the in-app slider can't change it there.
 
@@ -42,9 +56,11 @@ index.html            App shell, navigation and icon set
 css/styles.css        Design tokens (top of file), layout, components, light and dark themes
 js/config.js          App name, species, activities, moods, languages, the fictional map
 js/phrases.js         The invented translations in all seven languages
+js/talk.js            Understands what you say to a pet and picks its answer
+js/avatars.js         The pet illustrations
 js/sim.js             The simulated collar: activity, GPS, heart rate, battery, translations
 js/store.js           Pets, settings and logs, saved in this browser
-js/voice.js           Text-to-speech and generated sounds
+js/voice.js           Text-to-speech, voice choice, speech recognition and generated sounds
 js/map.js, charts.js  The illustrated map and the charts
 js/ui.js, dialogs.js  Shared components and dialogs
 js/views/             One file per page
@@ -58,8 +74,9 @@ Built to meet WCAG 2.2 AA: landmarks and headings, full keyboard support, visibl
 
 ## Privacy and legal notes
 
-- **Name.** "Pawlyglot" is a working name. The app isn't called Pet-Link because **PetLink is a registered trademark of Datamars, Inc.** for a pet microchip registry and lost-pet recovery service, which overlaps with a pet-tracking product. A web search found no app named Pawlyglot, but several pet apps use "Pawly". Get a proper trademark search before using any name publicly. To rename the app, change `APP_NAME` in `js/config.js`, the `<title>` and both brand `aria-label`s in `index.html`, `manifest.webmanifest` and this README.
+- **Name.** Before launching publicly, run a trademark search on "Pet-Link": "PetLink" is a registered trademark of Datamars, Inc. for a pet microchip registry and lost-pet recovery service. The name is set by `APP_NAME` in `js/config.js`, plus the `<title>` and both brand `aria-label`s in `index.html`, `manifest.webmanifest` and this README.
 - **No data collection.** No accounts, analytics, cookies or third-party requests. Pets, settings and logs stay in the browser's local storage. Settings → Data and privacy can export or delete them.
 - **Not a medical device, and the translations are fiction.** Disclaimers appear on first launch, on the Health and Translator pages, and in Settings → About and legal.
-- **Assets.** All illustrations, icons and the map were made for this project; no map service is used. Typeface: Inter, under the SIL Open Font License 1.1 (`assets/fonts/OFL.txt`).
-- **Speech** uses the device's built-in voices. If a language has no voice installed, some browsers fall back to an online voice from the browser maker.
+- **Assets.** All illustrations, icons and the map were made for this project; no map service is used. Typefaces: Inter and Fredoka, both under the SIL Open Font License 1.1 (license texts in `assets/fonts/`).
+- **Speech** uses the device's built-in voices. If a language has no voice installed, some browsers fall back to an online voice from the browser maker, which receives the text being spoken.
+- **Microphone.** It's used only when someone taps it, after a one-time consent prompt. The browser's speech recognition turns speech into text, and some browsers (Chrome, for example) send the audio to their maker to do that. Pet-Link doesn't record or keep audio. The privacy text in Settings → About and legal says the same.

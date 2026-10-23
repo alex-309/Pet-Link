@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#5b3fd0"/>
+  <rect width="512" height="512" rx="112" fill="#2c6a49"/>
   <g transform="translate(96 91) scale(10)">
-    <path d="M7 3.5h18A4.5 4.5 0 0 1 29.5 8v12a4.5 4.5 0 0 1-4.5 4.5H14l-6.5 5v-5H7A4.5 4.5 0 0 1 2.5 20V8A4.5 4.5 0 0 1 7 3.5z" fill="#ffffff"/>
-    <g transform="translate(6 3) scale(0.8333)" fill="#5b3fd0">
+    <path d="M7 3.5h18A4.5 4.5 0 0 1 29.5 8v12a4.5 4.5 0 0 1-4.5 4.5H14l-6.5 5v-5H7A4.5 4.5 0 0 1 2.5 20V8A4.5 4.5 0 0 1 7 3.5z" fill="#fffef9"/>
+    <g transform="translate(6 3) scale(0.8333)" fill="#2c6a49">
       <ellipse cx="5.6" cy="10.2" rx="2.1" ry="2.6" transform="rotate(-24 5.6 10.2)"/>
       <ellipse cx="9.4" cy="5.9" rx="2.1" ry="2.7" transform="rotate(-8 9.4 5.9)"/>
       <ellipse cx="14.6" cy="5.9" rx="2.1" ry="2.7" transform="rotate(8 14.6 5.9)"/>

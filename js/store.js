@@ -22,16 +22,18 @@
     theme: 'system', motion: 'system', units: guessUnits(),
     speed: 1, chattiness: 'normal', paused: false, quiet: false,
     chime: true, announce: true, zoneAlerts: true, safeRadius: 160,
+    talkLang: 'auto', micConsent: false,
   };
 
   const SAMPLE_PETS = [
     { name: 'Biscuit', species: 'dog', breed: 'Golden Retriever', size: 'large', age: 4, coat: 'golden', battery: 86,
       translator: { on: true, volume: 70, lang: 'en-US', voice: 'normal' } },
     { name: 'Luna', species: 'cat', breed: 'Tabby', size: 'small', age: 3, coat: 'gray', battery: 64,
-      translator: { on: true, volume: 55, lang: 'es-ES', voice: 'high' } },
-    { name: 'Pepper', species: 'dog', breed: 'Border Collie', size: 'medium', age: 2, coat: 'charcoal', battery: 41,
-      translator: { on: false, volume: 40, lang: 'fr-FR', voice: 'squeaky' } },
+      translator: { on: true, volume: 60, lang: 'es-ES', voice: 'high' } },
+    { name: 'Kiwi', species: 'bird', breed: 'Budgie', size: 'small', age: 2, coat: 'leaf', battery: 58,
+      translator: { on: true, volume: 60, lang: 'fr-FR', voice: 'squeaky' } },
   ];
+  const TRANSLATOR_DEFAULTS = { on: true, volume: 70, lang: 'en-US', voice: 'normal', voiceName: '' };
 
   function emit(topic, detail) {
     subs.forEach((fn) => {
@@ -78,25 +80,31 @@
   function sanitizePet(data) {
     const out = {};
     if ('name' in data) out.name = String(data.name || '').trim().slice(0, 20);
-    if ('species' in data) out.species = data.species === 'cat' ? 'cat' : 'dog';
+    if ('species' in data) out.species = C.SPECIES[data.species] ? data.species : 'dog';
     if ('breed' in data) out.breed = String(data.breed || '').trim().slice(0, 32);
     if ('size' in data) out.size = C.SIZES[data.size] ? data.size : 'medium';
     if ('age' in data) out.age = data.age === '' || data.age == null || isNaN(Number(data.age)) ? null : U.clamp(Math.round(Number(data.age)), 0, 30);
     if ('coat' in data) out.coat = C.COATS[data.coat] ? data.coat : 'golden';
     return out;
   }
+  // Each species has its own colors; fall back to its first one.
+  function fixCoat(pet) {
+    const coats = (C.SPECIES[pet.species] || C.SPECIES.dog).coats;
+    if (coats.indexOf(pet.coat) === -1) pet.coat = coats[0];
+    return pet;
+  }
   function makePet(data, slot) {
-    const base = sanitizePet(Object.assign({ species: 'dog', size: 'medium', coat: 'golden', breed: '', age: null }, data));
+    const base = fixCoat(sanitizePet(Object.assign({ species: 'dog', size: 'medium', coat: 'golden', breed: '', age: null }, data)));
     return Object.assign(base, {
       id: U.uid('pet'),
       slot,
       sample: !!data.sample,
       device: {
-        id: 'PG-' + String(1000 + Math.floor(Math.random() * 9000)),
+        id: 'PL-' + String(1000 + Math.floor(Math.random() * 9000)),
         battery: data.battery != null ? data.battery : 100,
         firmware: '0.9.4-demo',
       },
-      translator: Object.assign({ on: true, volume: 70, lang: 'en-US', voice: 'normal' }, data.translator || {}),
+      translator: Object.assign({}, TRANSLATOR_DEFAULTS, data.translator || {}),
       createdAt: Date.now(),
     });
   }
@@ -124,11 +132,11 @@
       state.stats[pet.id] = h.stats;
       h.logs.forEach((l) => state.logs.push(l));
     });
-    const [biscuit, luna, pepper] = state.pets;
+    const [biscuit, luna, kiwi] = state.pets;
     state.logs.push(
       { kind: 'activity', type: 'groom', petId: biscuit.id, ts: now - 5.6 * 60 * U.MIN, title: 'Grooming', note: 'Brushed out the undercoat.', source: 'manual' },
       { kind: 'activity', type: 'meds', petId: luna.id, ts: now - 3.2 * 60 * U.MIN, title: 'Medication', note: 'Monthly flea treatment (sample entry).', source: 'manual' },
-      { kind: 'activity', type: 'note', petId: pepper.id, ts: now - 1.4 * 60 * U.MIN, title: 'Note', note: 'Learned "spin" in two tries.', source: 'manual' },
+      { kind: 'activity', type: 'note', petId: kiwi.id, ts: now - 1.4 * 60 * U.MIN, title: 'Note', note: 'Learned to whistle the doorbell.', source: 'manual' },
     );
     state.logs.forEach((l) => { l.id = l.id || U.uid('log'); });
     state.logs.sort((a, b) => b.ts - a.ts);
@@ -146,9 +154,9 @@
     const used = new Set();
     s.pets = s.pets.filter((p) => p && p.id && p.name).slice(0, C.MAX_PETS);
     s.pets.forEach((p) => {
-      Object.assign(p, sanitizePet(p));
-      p.device = Object.assign({ id: 'PG-0000', battery: 80, firmware: '0.9.4-demo' }, p.device);
-      p.translator = Object.assign({ on: true, volume: 70, lang: 'en-US', voice: 'normal' }, p.translator);
+      fixCoat(Object.assign(p, sanitizePet(p)));
+      p.device = Object.assign({ id: 'PL-0000', battery: 80, firmware: '0.9.4-demo' }, p.device);
+      p.translator = Object.assign({}, TRANSLATOR_DEFAULTS, p.translator);
       if (!C.LANGUAGES.some((l) => l.code === p.translator.lang)) p.translator.lang = 'en-US';
       if (!C.VOICE_STYLES[p.translator.voice]) p.translator.voice = 'normal';
       if (!p.slot || used.has(p.slot)) p.slot = null;
@@ -197,8 +205,8 @@
       seed();
       persist();
     }
-    storageOk = U.storage.set('pawlyglot.probe', '1');
-    U.storage.remove('pawlyglot.probe');
+    storageOk = U.storage.set('petlink.probe', '1');
+    U.storage.remove('petlink.probe');
   }
 
   // ---- actions --------------------------------------------------------------------
@@ -232,7 +240,7 @@
   function updatePet(id, patch) {
     const pet = getPet(id);
     if (!pet) return;
-    Object.assign(pet, sanitizePet(patch));
+    fixCoat(Object.assign(pet, sanitizePet(patch)));
     if (patch.translator) Object.assign(pet.translator, patch.translator);
     persist();
     emit('pets', { updated: id });

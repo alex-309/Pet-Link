@@ -96,6 +96,24 @@
             ${settingSwitch('set-zone', 'zoneAlerts', 'Safe-zone alerts', 'Shows a notice when a pet leaves the safe zone on its own.')}
           </section>
 
+          <section class="card" aria-labelledby="set-talk">
+            <h2 class="card-title" id="set-talk">Talking to pets</h2>
+            <div class="setting setting--stack">
+              <label class="setting__label" for="set-talk-lang">Language you speak</label>
+              <div class="select"><select class="input input--compact" id="set-talk-lang" data-change="setting-select" data-key="talkLang">
+                <option value="auto"${s.talkLang === 'auto' ? ' selected' : ''}>Match my browser</option>
+                ${C.LANGUAGES.map((l) => `<option value="${l.code}" lang="${l.code}"${s.talkLang === l.code ? ' selected' : ''}>${U.esc(l.label)}${l.label !== l.english ? ' (' + l.english + ')' : ''}</option>`).join('')}
+              </select>${u.icon('chevron-down', 'select__icon')}</div>
+              <p class="setting__hint">Used when you talk to a pet with the microphone. Pets always answer in their own translator language.</p>
+            </div>
+            <div class="setting">
+              <div class="setting__text"><span class="setting__label">Microphone</span><span class="setting__hint">${!Paw.voice.canListen
+                ? 'Voice input isn’t available in this browser. You can always type to your pet.'
+                : s.micConsent ? 'You allowed voice input. Your browser may still ask for microphone permission.' : 'Pet-Link asks before it uses the microphone for the first time.'}</span></div>
+              ${s.micConsent ? '<button type="button" class="btn btn-secondary btn-sm" id="set-mic-reset" data-action="reset-mic">Ask me again</button>' : ''}
+            </div>
+          </section>
+
           <section class="card" aria-labelledby="set-data">
             <h2 class="card-title" id="set-data">Data and privacy</h2>
             <p class="card-text">${Paw.store.storageOk
@@ -122,7 +140,8 @@
               <ul>
                 <li>No account, ads, analytics or cookies.</li>
                 <li>Pets, settings and logs are saved in this browser’s local storage on this device only. Reset the demo or clear your browser data to delete them.</li>
-                <li>The app doesn’t use your real location, camera or microphone.</li>
+                <li>The app doesn’t use your real location or camera.</li>
+                <li>The microphone is used only when you tap it to talk to a pet. Your browser turns your speech into text, and some browsers send the audio to their maker to do that. Pet-Link never records or keeps it.</li>
                 <li>Fonts, icons, illustrations and the map are bundled with the app, so it doesn’t contact other websites.</li>
                 <li>Speech uses the voices on your device. If a language has no voice installed, some browsers use an online voice from the browser maker, which receives the text being spoken.</li>
               </ul>
@@ -136,7 +155,7 @@
               <summary>Credits and licenses</summary>
               <ul>
                 <li>Illustrations, icons and the map were made for this project.</li>
-                <li>Typeface: Inter by Rasmus Andersson and the Inter project authors, used under the SIL Open Font License 1.1 (assets/fonts/OFL.txt).</li>
+                <li>Typefaces: Inter (Rasmus Andersson and the Inter project authors) and Fredoka (the Fredoka project authors), both used under the SIL Open Font License 1.1. The license texts are in assets/fonts.</li>
                 <li>Breed names describe the sample pets. All pet names, streets and places on the map are fictional.</li>
               </ul>
             </details>
@@ -158,6 +177,13 @@
         const key = el.dataset.key;
         const raw = e.target.value;
         Paw.store.setSetting(key, key === 'speed' ? Number(raw) : raw);
+      },
+      'setting-select': (el) => Paw.store.setSetting(el.dataset.key, el.value),
+    },
+    actions: {
+      'reset-mic': () => {
+        Paw.store.setSetting('micConsent', false);
+        Paw.app.refreshView();
       },
     },
   };

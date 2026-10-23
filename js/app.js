@@ -37,6 +37,23 @@
       delete root.dataset.themeOwner;
     }
   }
+  // The theme actually showing: the app's choice, a host page's choice, or the device setting.
+  const darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function effectiveTheme() {
+    const t = settings().theme;
+    if (t === 'light' || t === 'dark') return t;
+    const host = document.documentElement.dataset.theme;
+    if (host === 'light' || host === 'dark') return host;
+    return darkQuery && darkQuery.matches ? 'dark' : 'light';
+  }
+  function updateThemeButton() {
+    const dark = effectiveTheme() === 'dark';
+    const btn = U.$('#btn-theme');
+    const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+    btn.innerHTML = ui.icon(dark ? 'sun' : 'moon');
+  }
   function applyMotion() {
     const m = settings().motion;
     if (m === 'reduce' || m === 'full') document.documentElement.dataset.motion = m;
@@ -168,9 +185,27 @@
       explain('This browser can’t speak out loud. Translations still appear as text.', { icon: 'info' });
       return false;
     }
+    if (Paw.voice.listening) return false; // don't talk into the microphone
     const style = C.VOICE_STYLES[pet.translator.voice] || C.VOICE_STYLES.normal;
     const volume = pet.translator.volume / 100;
-    const say = () => Paw.voice.speak({ text, lang: o.lang || pet.translator.lang, volume, pitch: style.pitch, rate: style.rate, petId });
+    let lang = o.lang || pet.translator.lang;
+    let line = text;
+    let voiceName = lang === pet.translator.lang ? pet.translator.voiceName : '';
+    // No voice for this language on the device: say the same line in a language it can speak,
+    // so the pet never goes silent. (Every line exists in all app languages.)
+    if (Paw.voice.ready && Paw.voice.voiceCount && !Paw.voice.voiceFor(lang)) {
+      const alt = Paw.voice.fallbackLang(Paw.sim.langShort(lang));
+      if (alt) {
+        const re = o.key ? Paw.sim.retranslate({ key: o.key }, alt) : null;
+        if (re) line = re.text;
+        else if (o.texts && o.texts[Paw.sim.langShort(alt)]) line = o.texts[Paw.sim.langShort(alt)];
+        lang = alt;
+        voiceName = '';
+      }
+    }
+    // retry: how to say it again in another language if every voice for this one fails.
+    const retry = o.retried ? null : { lang: o.lang, key: o.key, texts: o.texts };
+    const say = () => Paw.voice.speak({ text: line, lang, voiceName, volume, pitch: style.pitch, rate: style.rate, petId, retry });
     if (o.chime && s.chime) {
       Paw.voice.chime(volume);
       setTimeout(say, 380);
@@ -178,6 +213,28 @@
       say();
     }
     return true;
+  }
+
+  // Play what you said to a pet as that pet's own sounds (tr from Paw.petSounds.translate).
+  // Resolves with the length in seconds, or 0 when nothing played.
+  function petSay(petId, tr, opts) {
+    const o = opts || {};
+    const pet = getPet(petId);
+    if (!pet || !tr) return Promise.resolve(0);
+    const explain = (msg, extra) => { if (o.explain) ui.toast(msg, Object.assign({ icon: 'volume-off' }, extra)); };
+    if (!pet.translator.on) {
+      explain(`${ui.possessive(pet.name)} translator is off.`, { actionLabel: 'Turn on', action: () => toggleTranslator(petId) });
+      return Promise.resolve(0);
+    }
+    if (settings().quiet) {
+      explain('Quiet mode is on, so voice boxes are silent.', { actionLabel: 'Turn off', action: () => Paw.store.setSetting('quiet', false) });
+      return Promise.resolve(0);
+    }
+    if (!pet.translator.volume) {
+      explain(`${ui.possessive(pet.name)} voice box volume is at 0%.`);
+      return Promise.resolve(0);
+    }
+    return Paw.petSounds.play(pet, tr, (pet.translator.volume / 100) * 0.9).catch(() => 0);
   }
 
   function setSpeaking(petId, on) {
@@ -246,6 +303,7 @@
       'toggle-setting': (el) => Paw.store.setSetting(el.dataset.key, !settings()[el.dataset.key]),
       'toggle-pause': () => setPaused(!settings().paused),
       'toggle-quiet': () => Paw.store.setSetting('quiet', !settings().quiet),
+      'toggle-theme': () => Paw.store.setSetting('theme', effectiveTheme() === 'dark' ? 'light' : 'dark'),
       'open-demo': () => Paw.dialogs.demoControls(),
       'log-entry': (el) => Paw.dialogs.logEntry(el.dataset.type),
       export: () => Paw.dialogs.exportData(),
@@ -254,20 +312,29 @@
       'delete-log': (el) => deleteLog(el.dataset.log),
       'logs-tab-link': (el) => Paw.views.logs.setTab(el.dataset.tab),
       'replay-latest': (el) => {
-        const r = Paw.sim.runtime(el.dataset.pet);
-        if (!r || !r.lastThought) {
-          ui.toast('No translation yet. Try Listen now on the Translator page.', { icon: 'info' });
+        const pet = getPet(el.dataset.pet);
+        const r = pet && Paw.sim.runtime(pet.id);
+        if (!r) return;
+        // A pet with nothing translated yet (one just added, say) comes up with a line now;
+        // the new thought is spoken like any other.
+        if (!r.lastThought) {
+          if (pet.translator.on) Paw.sim.think(pet.id, { manual: true });
+          else ui.toast(`${ui.possessive(pet.name)} translator is off.`, { icon: 'volume-off', actionLabel: 'Turn on', action: () => toggleTranslator(pet.id) });
           return;
         }
-        speakFor(el.dataset.pet, r.lastThought.text, { lang: r.lastThought.lang, requireOn: true, explain: true });
+        speakFor(pet.id, r.lastThought.text, { lang: r.lastThought.lang, key: r.lastThought.key, requireOn: true, explain: true });
       },
       'replay-log': (el) => {
         const l = Paw.store.state.logs.find((x) => x.id === el.dataset.log);
-        if (l) speakFor(l.petId, l.text, { lang: l.lang, explain: true });
+        if (l) speakFor(l.petId, l.text, { lang: l.lang, key: l.key, explain: true });
+      },
+      'play-sounds': (el) => {
+        const pet = getPet(el.dataset.pet);
+        if (pet) petSay(pet.id, Paw.petSounds.translate(pet, el.dataset.text), { explain: true });
       },
       'test-speaker': (el) => {
         const pet = getPet(el.dataset.pet);
-        if (pet) speakFor(pet.id, Paw.phrases.speakerTest[Paw.sim.langShort(pet.translator.lang)], { requireOn: true, explain: true });
+        if (pet) speakFor(pet.id, Paw.phrases.speakerTest[Paw.sim.langShort(pet.translator.lang)], { texts: Paw.phrases.speakerTest, requireOn: true, explain: true });
       },
       'toggle-mute': (el) => {
         const pet = getPet(el.dataset.pet);
@@ -327,7 +394,8 @@
     const entry = Object.assign({}, t);
     delete entry.manual;
     Paw.store.addLog(entry);
-    if (pet.translator.on) speakFor(pet.id, t.text, { lang: t.lang, chime: true });
+    // Lines the person asked for (a reply, Listen in, Play) say why they're silent; background chatter doesn't.
+    if (pet.translator.on) speakFor(pet.id, t.text, { lang: t.lang, key: t.key, chime: true, explain: t.manual });
     if (settings().announce) ui.announce(`${pet.name} says:`, { text: t.text, lang: t.lang });
     ui.refreshAvatars(pet.id);
     if (view && view.on) view.on('thought', t, main());
@@ -367,7 +435,12 @@
     Paw.store.subscribe((topic, d) => {
       switch (topic) {
         case 'settings':
-          if (d.key === 'theme') applyTheme();
+          if (d.key === 'theme') {
+            applyTheme();
+            updateThemeButton();
+            const radio = U.$(`input[name="theme"][value="${d.value}"]`);
+            if (radio) radio.checked = true;
+          }
           if (d.key === 'motion') applyMotion();
           if (d.key === 'paused' || d.key === 'quiet') updateStatus();
           if (d.key === 'quiet' && d.value) Paw.voice.stop();
@@ -410,6 +483,7 @@
           Paw.sim.reset();
           Paw.sim.start();
           applyTheme();
+          updateThemeButton();
           applyMotion();
           renderPack();
           renderChips();
@@ -463,7 +537,9 @@
       if (type === 'start' && item) setSpeaking(item.petId, true);
       else if (type === 'end' && item) setSpeaking(item.petId, false);
       else if (type === 'idle') setSpeaking(null, false);
-      else if (type === 'voices' && view && view.on) view.on('voices', {}, main());
+      else if ((type === 'voices' || type === 'voice-failed') && view && view.on) view.on('voices', {}, main());
+      // Every voice for that language failed: say it again, which falls back to another language.
+      else if (type === 'unavailable' && item && item.retry) speakFor(item.petId, item.text, Object.assign({}, item.retry, { retried: true }));
     });
 
     document.addEventListener('click', (e) => delegate('click', e));
@@ -493,17 +569,20 @@
     applyMotion();
     setAppName();
     Paw.voice.init();
+    Paw.petSounds.init();
     Paw.sim.start();
     U.hostDownloads();
     renderPack();
     renderChips();
     updateStatus();
+    updateThemeButton();
+    if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener('change', updateThemeButton);
     wire();
     go(currentRoute() || 'home', { focus: false });
     if (!U.storage.get(C.ACK_KEY)) Paw.dialogs.welcome();
     registerServiceWorker();
   }
 
-  Paw.app = { refreshView, setPaused, speakFor, toggleTranslator, go: (r) => { location.hash = r; } };
+  Paw.app = { refreshView, setPaused, speakFor, petSay, toggleTranslator, go: (r) => { location.hash = r; } };
   init();
 })();

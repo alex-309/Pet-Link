@@ -27,7 +27,8 @@
       return `<li class="log-item log-item--thought">
           <span class="log-item__icon" aria-hidden="true">${u.icon(m.icon)}</span>
           <div class="log-item__body">
-            <p class="log-item__line">${who}<span class="log-item__title">${m.label}</span>${time}</p>
+            <p class="log-item__line">${who}<span class="log-item__title">${l.prompt ? 'Reply' : m.label}</span>${time}</p>
+            ${l.prompt ? `<p class="log-item__said"><span>You said</span> “${U.esc(l.prompt)}”${l.promptSounds ? ` · <span>In ${Paw.petSounds.label(pet.species)}</span> ${U.esc(l.promptSounds)}` : ''}</p>` : ''}
             <blockquote class="log-item__quote" lang="${U.esc(l.lang)}">${U.esc(l.text)}</blockquote>
             <p class="log-item__meta">Heard ${sound(l.sound || '')} · ${U.esc(u.language(l.lang).label)}</p>
           </div>
@@ -62,7 +63,7 @@
   function search(l) {
     if (!f.q) return true;
     const pet = Paw.store.getPet(l.petId);
-    const hay = [l.text, l.title, l.note, l.detail, l.sound, pet && pet.name, l.mood && C.MOODS[l.mood] && C.MOODS[l.mood].label]
+    const hay = [l.text, l.prompt, l.promptSounds, l.title, l.note, l.detail, l.sound, pet && pet.name, l.mood && C.MOODS[l.mood] && C.MOODS[l.mood].label]
       .filter(Boolean).join(' ').toLowerCase();
     return hay.indexOf(f.q.toLowerCase()) !== -1;
   }

@@ -1,5 +1,5 @@
 /* Offline support. Network first (so edits show up right away), cached copy when offline. */
-const CACHE = 'pawlyglot-v1';
+const CACHE = 'petlink-v5';
 const ASSETS = [
   './',
   'index.html',
@@ -10,6 +10,8 @@ const ASSETS = [
   'js/util.js',
   'js/avatars.js',
   'js/sim.js',
+  'js/talk.js',
+  'js/petsounds.js',
   'js/store.js',
   'js/voice.js',
   'js/charts.js',
@@ -24,12 +26,15 @@ const ASSETS = [
   'js/views/settings.js',
   'js/app.js',
   'assets/fonts/inter-latin-wght-normal.woff2',
+  'assets/fonts/fredoka-latin-600-normal.woff2',
   'assets/icons/icon.svg',
   'assets/icons/icon-192.png',
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE)
+    .then((cache) => cache.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -44,7 +49,9 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   event.respondWith(
-    fetch(req)
+    // "no-cache" asks the server every time (a quick 304 when nothing changed), so the browser's
+    // HTTP cache can't hand back an old script after an edit.
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

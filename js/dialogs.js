@@ -47,7 +47,19 @@
       return;
     }
     const d = editing || { name: '', species: 'dog', breed: '', size: 'medium', age: null, coat: 'golden', translator: { lang: 'en-US', voice: 'normal' } };
-    const radio = (name, value, label, checked, extra) => `<label><input type="radio" name="${name}" value="${value}"${checked ? ' checked' : ''}><span>${extra || ''}${label}</span></label>`;
+    const swatches = (species, selected) => {
+      const coats = C.SPECIES[species].coats;
+      const pick = coats.indexOf(selected) !== -1 ? selected : coats[0];
+      return coats.map((k) => {
+        const c = C.COATS[k];
+        return `<label class="swatch" title="${c.label}"><input type="radio" name="coat" value="${k}"${k === pick ? ' checked' : ''}><span class="swatch__dot" style="--swatch:${c.base}"></span><span class="visually-hidden">${c.label}</span></label>`;
+      }).join('');
+    };
+    const speciesCards = C.SPECIES_ORDER.map((k) => {
+      const sp = C.SPECIES[k];
+      const face = Paw.avatars.wrap({ id: 'pick-' + k, species: k, coat: sp.coats[0] }, { size: 'sm', state: 'calm' });
+      return `<label class="species-card"><input type="radio" name="species" value="${k}"${d.species === k ? ' checked' : ''}><span>${face}${sp.label}</span></label>`;
+    }).join('');
     Paw.ui.openDialog({
       labelledby: 'pet-form-title',
       html: `<form class="dialog__form" id="pet-form" novalidate>
@@ -63,16 +75,13 @@
             <p class="field__error" id="pet-name-error" hidden></p>
           </div>
           <fieldset class="field">
-            <legend class="field__label">Species</legend>
-            <div class="segmented segmented--wide">
-              ${radio('species', 'dog', 'Dog', d.species === 'dog')}
-              ${radio('species', 'cat', 'Cat', d.species === 'cat')}
-            </div>
+            <legend class="field__label">Kind of pet</legend>
+            <div class="species-grid">${speciesCards}</div>
           </fieldset>
           <div class="field-row">
             <div class="field">
               <label class="field__label" for="pet-breed">Breed <span class="field__optional">(optional)</span></label>
-              <input class="input" id="pet-breed" name="breed" type="text" maxlength="32" autocomplete="off" value="${U.esc(d.breed || '')}">
+              <input class="input" id="pet-breed" name="breed" type="text" maxlength="32" autocomplete="off" value="${U.esc(d.breed || '')}" placeholder="For example, ${U.esc(C.SPECIES[d.species].breedHint)}">
             </div>
             <div class="field">
               <label class="field__label" for="pet-age">Age in years <span class="field__optional">(optional)</span></label>
@@ -80,7 +89,7 @@
               <p class="field__error" id="pet-age-error" hidden></p>
             </div>
           </div>
-          <div class="field" id="pet-size-field"${d.species === 'cat' ? ' hidden' : ''}>
+          <div class="field" id="pet-size-field"${C.SPECIES[d.species].sizes ? '' : ' hidden'}>
             <label class="field__label" for="pet-size">Size</label>
             <div class="select"><select class="input" id="pet-size" name="size" aria-describedby="pet-size-hint">
               ${Object.entries(C.SIZES).map(([k, v]) => `<option value="${k}"${d.size === k ? ' selected' : ''}>${v}</option>`).join('')}
@@ -88,10 +97,8 @@
             <p class="field__hint" id="pet-size-hint">Sets the usual heart-rate range the demo compares against.</p>
           </div>
           <fieldset class="field">
-            <legend class="field__label">Coat color</legend>
-            <div class="swatches">
-              ${Object.entries(C.COATS).map(([k, c]) => `<label class="swatch" title="${c.label}"><input type="radio" name="coat" value="${k}"${d.coat === k ? ' checked' : ''}><span class="swatch__dot" style="--swatch:${c.base}"></span><span class="visually-hidden">${c.label}</span></label>`).join('')}
-            </div>
+            <legend class="field__label">Color</legend>
+            <div class="swatches" id="pet-swatches">${swatches(d.species, d.coat)}</div>
           </fieldset>
           <div class="field-row">
             <div class="field">
@@ -117,11 +124,19 @@
         const preview = el.querySelector('.pet-preview');
         const sizeField = el.querySelector('#pet-size-field');
         const updatePreview = () => {
-          const species = form.elements.species.value;
-          sizeField.hidden = species === 'cat';
-          preview.innerHTML = Paw.avatars.wrap({ id: 'preview', species, coat: form.elements.coat.value }, { size: 'xl', state: 'active' });
+          preview.innerHTML = Paw.avatars.wrap({ id: 'preview', species: form.elements.species.value, coat: form.elements.coat.value }, { size: 'xl', state: 'active' });
         };
+        let lastSpecies = d.species;
         form.addEventListener('change', (e) => {
+          if (e.target.name === 'species') {
+            const sp = C.SPECIES[e.target.value];
+            sizeField.hidden = !sp.sizes;
+            el.querySelector('#pet-swatches').innerHTML = swatches(e.target.value, form.elements.coat.value);
+            form.elements.breed.placeholder = 'For example, ' + sp.breedHint;
+            // Suggest a fitting voice unless the person already picked a different one.
+            if (form.elements.voice.value === C.SPECIES[lastSpecies].voice) form.elements.voice.value = sp.voice;
+            lastSpecies = e.target.value;
+          }
           if (e.target.name === 'species' || e.target.name === 'coat') updatePreview();
         });
         form.addEventListener('submit', (e) => {
@@ -156,7 +171,8 @@
             size: form.elements.size.value,
             age: ageRaw === '' ? null : age,
             coat: form.elements.coat.value,
-            translator: { lang: form.elements.lang.value, voice: form.elements.voice.value },
+            translator: Object.assign({ lang: form.elements.lang.value, voice: form.elements.voice.value },
+              editing && editing.translator.lang !== form.elements.lang.value ? { voiceName: '' } : {}),
           };
           if (editing) {
             Paw.store.updatePet(editing.id, data);
@@ -179,10 +195,7 @@
       Paw.ui.toast('Add a pet first to use the demo controls.');
       return;
     }
-    const acts = [
-      ['sleeping', 'Sleep'], ['resting', 'Rest'], ['eating', 'Eat'], ['walking', 'Walk'],
-      ['exploring', 'Explore'], ['playing', 'Play'], ['running', 'Run'],
-    ];
+    const acts = C.ACTIVITY_ORDER;
     const radio = (name, value, label, checked) => `<label><input type="radio" name="${name}" value="${value}"${checked ? ' checked' : ''}><span>${label}</span></label>`;
     Paw.ui.openDialog({
       labelledby: 'demo-title',
@@ -199,7 +212,7 @@
               <div class="select"><select class="input" id="demo-pet">${Paw.ui.petOptions(pet.id)}</select>${chevron()}</div>
             </div>
             <div class="demo__acts" role="group" aria-label="Activity">
-              ${acts.map(([a, l]) => `<button type="button" class="btn btn-secondary btn-sm" data-demo-act="${a}">${icon(C.ACTIVITIES[a].icon)}<span>${l}</span></button>`).join('')}
+              ${acts.map((a) => `<button type="button" class="btn btn-secondary btn-sm" data-demo-act="${a}">${icon(C.ACTIVITIES[a].icon)}<span>${C.activityLabel(pet.species, a)}</span></button>`).join('')}
             </div>
             <div class="demo__acts" role="group" aria-label="Events">
               <button type="button" class="btn btn-secondary btn-sm" data-demo="speak">${icon('chat')}Say something now</button>
@@ -233,8 +246,11 @@
         const current = () => Paw.store.getPet(select.value);
         const syncActs = () => {
           const p = current();
-          el.querySelector('[data-demo-act="walking"]').hidden = p.species === 'cat';
-          el.querySelector('[data-demo-act="running"] span').textContent = p.species === 'cat' ? 'Zoomies' : 'Run';
+          acts.forEach((a) => {
+            const btn = el.querySelector(`[data-demo-act="${a}"]`);
+            btn.querySelector('span').textContent = C.activityLabel(p.species, a);
+            btn.hidden = a === 'walking' && !C.SPECIES[p.species].canWalk;
+          });
         };
         syncActs();
         select.addEventListener('change', () => {
@@ -250,7 +266,7 @@
           if (actBtn) {
             const act = actBtn.dataset.demoAct;
             Paw.sim.forceActivity(p.id, act);
-            say(`${p.name} is now ${C.ACTIVITIES[act].label.toLowerCase()}.`);
+            say(`${p.name} switched to ${C.activityLabel(p.species, act).toLowerCase()}.`);
             return;
           }
           if (!evBtn) return;
@@ -393,12 +409,12 @@
 
   // ---- export -------------------------------------------------------------------------------
   function logsCSV() {
-    const header = ['time', 'pet', 'kind', 'type', 'mood', 'title', 'text', 'language', 'heard', 'duration_min', 'distance_m', 'note', 'source'];
+    const header = ['time', 'pet', 'kind', 'type', 'mood', 'title', 'you_said', 'you_said_in_pet_sounds', 'text', 'language', 'heard', 'duration_min', 'distance_m', 'note', 'source'];
     const rows = Paw.store.state.logs.map((l) => {
       const pet = Paw.store.getPet(l.petId);
       return [
         new Date(l.ts).toISOString(), pet ? pet.name : '', l.kind, l.type || '', l.mood || '', l.title || '',
-        l.text || '', l.lang || '', l.sound || '', l.durationSec ? Math.round(l.durationSec / 60) : '',
+        l.prompt || '', l.promptSounds || '', l.text || '', l.lang || '', l.sound || '', l.durationSec ? Math.round(l.durationSec / 60) : '',
         l.distance || '', l.note || '', l.source || (l.kind === 'thought' ? 'collar' : ''),
       ];
     });

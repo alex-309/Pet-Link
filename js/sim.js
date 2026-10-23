@@ -25,25 +25,26 @@
   }
   const settings = () => Paw.store.state.settings;
   const petById = (id) => Paw.store.state.pets.find((p) => p.id === id);
+  const species = (pet) => C.SPECIES[pet.species] || C.SPECIES.dog;
 
   // ---- body models ------------------------------------------------------------
   function restRange(pet) {
-    const table = C.HR_REST[pet.species] || C.HR_REST.dog;
-    return table[pet.size] || table.medium;
+    const hr = species(pet).hr;
+    return Array.isArray(hr) ? hr : hr[pet.size] || hr.medium;
   }
   function hrTarget(pet, activity) {
     const [lo, hi] = restRange(pet);
     let level = C.ACTIVITIES[activity].level;
-    if (level > 0.4) level = 0.4 + (level - 0.4) * C.SPECIES[pet.species].activeScale;
+    if (level > 0.4) level = 0.4 + (level - 0.4) * species(pet).activeScale;
     return lo + (hi - lo) * level;
   }
   function tempTarget(pet, activity) {
-    const [lo, hi] = C.SPECIES[pet.species].tempC;
+    const [lo, hi] = species(pet).tempC;
     const level = U.clamp(C.ACTIVITIES[activity].level, -0.2, 2.4);
-    return lo + (hi - lo) * 0.45 + level * 0.18;
+    return lo + (hi - lo) * 0.45 + level * (hi - lo) * 0.2;
   }
   function breathTarget(pet, activity) {
-    const [lo, hi] = C.SPECIES[pet.species].breathing;
+    const [lo, hi] = species(pet).breathing;
     const level = C.ACTIVITIES[activity].level;
     const factor = activity === 'sleeping' ? 0.85 : 1 + Math.max(0, level - 0.4) * (pet.species === 'dog' ? 1.1 : 0.5);
     return (lo + (hi - lo) * 0.4) * factor;
@@ -52,13 +53,14 @@
   function hrStatus(pet, r) {
     const [lo, hi] = restRange(pet);
     const act = C.ACTIVITIES[r.activity];
-    if (r.hr > hi * 1.75) return { level: 'critical', label: 'Very high', note: 'Much higher than usual for this pet (simulated)' };
-    if (r.hr > hi + 3) {
+    const margin = Math.max(3, (hi - lo) * 0.05);
+    if (r.hr > hi * 1.75 + margin) return { level: 'critical', label: 'Very high', note: 'Much higher than usual for this pet (simulated)' };
+    if (r.hr > hi + margin) {
       return act.active
-        ? { level: 'good', label: 'Active', note: 'Higher, as expected while ' + act.label.toLowerCase() }
+        ? { level: 'good', label: 'Active', note: 'Higher, as expected while ' + C.activityLabel(pet.species, r.activity).toLowerCase() }
         : { level: 'warning', label: 'Elevated', note: 'Higher than usual while resting' };
     }
-    if (r.hr < lo - 3) {
+    if (r.hr < lo - margin) {
       return r.activity === 'sleeping'
         ? { level: 'good', label: 'Asleep', note: 'Lower, as expected during sleep' }
         : { level: 'warning', label: 'Low', note: 'Lower than the usual resting range' };
@@ -67,37 +69,28 @@
   }
 
   // ---- a typical day, used to generate believable history ---------------------
-  function scheduled(species, m) {
-    if (species === 'cat') {
-      if (m < 300) return m % 120 < 20 ? 'exploring' : 'sleeping';
-      if (m < 360) return 'resting';
-      if (m < 375) return 'eating';
-      if (m < 420) return 'playing';
-      if (m < 690) return 'sleeping';
-      if (m < 750) return 'exploring';
-      if (m < 900) return 'sleeping';
-      if (m < 960) return 'resting';
-      if (m < 1020) return 'exploring';
-      if (m < 1035) return 'eating';
-      if (m < 1050) return 'running';
-      if (m < 1260) return 'resting';
-      return 'sleeping';
-    }
-    if (m < 390) return 'sleeping';
-    if (m < 420) return 'resting';
-    if (m < 435) return 'eating';
-    if (m < 480) return 'walking';
-    if (m < 600) return 'sleeping';
-    if (m < 690) return 'resting';
-    if (m < 720) return 'playing';
-    if (m < 840) return 'resting';
-    if (m < 930) return 'sleeping';
-    if (m < 1000) return 'exploring';
-    if (m < 1050) return 'walking';
-    if (m < 1065) return 'eating';
-    if (m < 1095) return 'playing';
-    if (m < 1290) return 'resting';
-    return 'sleeping';
+  // Each entry is [minute of day the activity ends, activity].
+  const DAY = {
+    dog: [[390, 'sleeping'], [420, 'resting'], [435, 'eating'], [480, 'walking'], [600, 'sleeping'], [690, 'resting'], [720, 'playing'],
+      [840, 'resting'], [930, 'sleeping'], [1000, 'exploring'], [1050, 'walking'], [1065, 'eating'], [1095, 'playing'], [1290, 'resting'], [1440, 'sleeping']],
+    cat: [[360, 'resting'], [375, 'eating'], [420, 'playing'], [690, 'sleeping'], [750, 'exploring'], [900, 'sleeping'], [960, 'resting'],
+      [1020, 'exploring'], [1035, 'eating'], [1050, 'running'], [1260, 'resting'], [1440, 'sleeping']],
+    rabbit: [[300, 'sleeping'], [420, 'exploring'], [450, 'eating'], [600, 'resting'], [900, 'sleeping'], [960, 'resting'], [1020, 'playing'],
+      [1080, 'exploring'], [1110, 'eating'], [1260, 'resting'], [1440, 'sleeping']],
+    bird: [[390, 'sleeping'], [420, 'resting'], [440, 'eating'], [540, 'playing'], [660, 'resting'], [700, 'running'], [760, 'eating'],
+      [900, 'resting'], [960, 'playing'], [1000, 'running'], [1020, 'eating'], [1170, 'resting'], [1440, 'sleeping']],
+    hamster: [[120, 'running'], [180, 'eating'], [300, 'exploring'], [420, 'running'], [1140, 'sleeping'], [1200, 'resting'], [1230, 'eating'],
+      [1320, 'running'], [1440, 'exploring']],
+    horse: [[240, 'resting'], [300, 'sleeping'], [420, 'eating'], [480, 'resting'], [540, 'walking'], [720, 'eating'], [780, 'sleeping'],
+      [900, 'eating'], [960, 'walking'], [1080, 'eating'], [1140, 'playing'], [1320, 'eating'], [1440, 'resting']],
+    turtle: [[420, 'sleeping'], [540, 'resting'], [570, 'eating'], [720, 'exploring'], [900, 'resting'], [960, 'exploring'], [980, 'eating'],
+      [1140, 'resting'], [1440, 'sleeping']],
+  };
+  function scheduled(kind, m) {
+    if (kind === 'cat' && m < 300) return m % 120 < 20 ? 'exploring' : 'sleeping';
+    const day = DAY[kind] || DAY.dog;
+    for (const [end, act] of day) if (m < end) return act;
+    return day[day.length - 1][1];
   }
   const scheduleShift = (pet) => (U.hash(pet.id) % 41) - 20;
   function minuteOfDay(pet, ts) {
@@ -105,7 +98,16 @@
     return (d.getHours() * 60 + d.getMinutes() + scheduleShift(pet) + 1440) % 1440;
   }
   // Meters covered per minute of each activity, for the generated history.
-  const HISTORY_PACE = { walking: 80, running: 160, playing: 25, exploring: 12, eating: 0, resting: 0, sleeping: 0 };
+  const PACE = { walking: 80, running: 160, playing: 25, exploring: 12, eating: 0, resting: 0, sleeping: 0 };
+  const PACE_BY_SPECIES = {
+    cat: { exploring: 22 },
+    rabbit: { playing: 30, exploring: 15, running: 60 },
+    bird: { running: 40, playing: 10 },
+    hamster: { running: 25, exploring: 3 },
+    horse: { walking: 110, running: 300 },
+    turtle: { exploring: 3, playing: 2, running: 5 },
+  };
+  const pace = (pet, act) => ((PACE_BY_SPECIES[pet.species] || {})[act] != null ? PACE_BY_SPECIES[pet.species][act] : PACE[act]);
 
   // ---- moods & translations ---------------------------------------------------
   const MOOD_WEIGHTS = {
@@ -123,7 +125,8 @@
     if ((hour >= 7 && hour < 9) || (hour >= 17 && hour < 19)) w.hungry = (w.hungry || 0) + 2.5;
     if (ctx.outside) w.curious = (w.curious || 0) + 3;
     if (pet.species === 'cat') w.sassy = (w.sassy || 0) * 2 + 1;
-    else if (w.sassy) w.sassy *= 0.5;
+    else if (pet.species === 'dog') w.sassy = (w.sassy || 0) * 0.5;
+    if (pet.species === 'turtle') w.sleepy = (w.sleepy || 0) + 1.5;
     return U.weighted(w, rng);
   }
 
@@ -134,34 +137,58 @@
     const lang = pet.translator.lang;
     const group = (Paw.phrases.bank[langShort(lang)] || Paw.phrases.bank.en)[mood];
     const pool = group.all.map((t, i) => ({ t, k: mood + '.a' + i }))
-      .concat(group[pet.species].map((t, i) => ({ t, k: mood + '.' + pet.species + i })));
+      .concat((group[pet.species] || []).map((t, i) => ({ t, k: mood + '.' + pet.species + i })));
     const fresh = recent ? pool.filter((p) => recent.indexOf(p.k) === -1) : pool;
     const from = fresh.length ? fresh : pool;
     const choice = from[Math.floor(r() * from.length)];
-    const sounds = Paw.phrases.sounds[pet.species][mood];
     return {
       kind: 'thought', petId: pet.id, ts, mood, lang,
-      text: choice.t, key: choice.k, sound: sounds[Math.floor(r() * sounds.length)],
+      text: choice.t, key: choice.k, sound: soundFor(pet, mood, r),
     };
+  }
+  function soundFor(pet, mood, rng) {
+    const set = (Paw.phrases.sounds[pet.species] || Paw.phrases.sounds.dog)[mood];
+    return set[Math.floor((rng || Math.random)() * set.length)];
+  }
+
+  // The same line in another language (every language lists its lines in the same order).
+  function retranslate(t, lang) {
+    const key = (t && t.key) || '';
+    let text = null;
+    if (key.indexOf('talk.') === 0) {
+      text = Paw.talk.line(key, lang);
+    } else {
+      const m = /^(\w+)\.(a|[a-z]+?)(\d+)$/.exec(key);
+      const group = m && (Paw.phrases.bank[langShort(lang)] || {})[m[1]];
+      const list = group && (m[2] === 'a' ? group.all : group[m[2]]);
+      text = (list && list[Number(m[3])]) || null;
+    }
+    return text ? Object.assign({}, t, { lang, text }) : null;
   }
 
   // ---- log entries for finished activities ------------------------------------
+  const TITLES = {
+    dog: { running: 'Run in the park', playing: 'Played in the backyard', exploring: 'Sniffed around the yard' },
+    cat: { running: 'Zoomies', playing: 'Played with a toy', exploring: 'Explored the neighborhood' },
+    rabbit: { running: 'Zoomies in the yard', playing: 'Binkies in the yard', exploring: 'Grazed in the backyard' },
+    bird: { running: 'Flew around the house', playing: 'Played with toys', exploring: 'Explored the house' },
+    hamster: { running: 'Ran on the wheel', playing: 'Rolled around in the ball', exploring: 'Explored the cage' },
+    horse: { walking: 'Trail ride', running: 'Gallop in the park', playing: 'Played in the paddock', exploring: 'Wandered the paddock', eating: 'Grazing' },
+    turtle: { running: 'Scooted across the yard', playing: 'Pushed a strawberry around', exploring: 'Explored the garden, slowly', resting: 'Basked' },
+  };
   function activityEntry(pet, act, ts, durationSec, meters) {
     const type = C.ACTIVITY_LOG_TYPE[act];
     if (!type) return null; // resting is not logged
     if (durationSec < (act === 'eating' ? 10 : 20)) return null;
     const hour = new Date(ts).getHours();
-    const cat = pet.species === 'cat';
-    const titles = {
+    const own = TITLES[pet.species] || {};
+    const fallback = {
       walking: 'Walk',
-      running: cat ? 'Zoomies' : 'Run in the park',
-      playing: cat ? 'Played with a toy' : 'Played in the backyard',
-      exploring: cat ? 'Explored the neighborhood' : 'Sniffed around the yard',
       eating: hour < 11 ? 'Breakfast' : hour >= 16 ? 'Dinner' : 'Snack',
       sleeping: hour >= 21 || hour < 6 ? 'Slept' : 'Nap',
     };
     return {
-      kind: 'activity', type, petId: pet.id, ts, title: titles[act],
+      kind: 'activity', type, petId: pet.id, ts, title: own[act] || fallback[act] || C.activityLabel(pet.species, act),
       durationSec: Math.round(durationSec), distance: Math.round(meters || 0), source: 'collar',
     };
   }
@@ -176,7 +203,7 @@
     if (C.ACTIVITIES[act].active) stats.activeSec += sec;
     if (act === 'sleeping') stats.sleepSec += sec;
     stats.distance += meters;
-    stats.steps += meters * C.SPECIES[pet.species].stepsPerMeter + (act === 'playing' ? sec * 0.8 : 0);
+    stats.steps += meters * species(pet).stepsPerMeter + (act === 'playing' ? sec * 0.8 : 0);
   }
 
   // Sleep between 8 pm yesterday and 8 am today, from the typical-day schedule.
@@ -205,24 +232,21 @@
 
     const closeSeg = (s, end) => {
       const mins = (end - s.start) / U.MIN;
-      const pace = HISTORY_PACE[s.act] * (pet.species === 'cat' && s.act === 'exploring' ? 1.8 : 1);
-      const entry = activityEntry(pet, s.act, s.start, mins * 60, mins * pace);
+      const entry = activityEntry(pet, s.act, s.start, mins * 60, mins * pace(pet, s.act));
       if (entry) logs.push(entry);
     };
 
     for (let i = 0; i < minutes; i++) {
       const ts = start + i * U.MIN;
       const act = scheduled(pet.species, minuteOfDay(pet, ts));
-      v = v * 0.6 + hrTarget(pet, act) * 0.4 + U.gauss(rng) * 2.2;
+      const [lo, hi] = restRange(pet);
+      v = v * 0.6 + hrTarget(pet, act) * 0.4 + U.gauss(rng) * Math.max(1.5, (hi - lo) * 0.05);
       values.push(Math.round(v));
       if (!seg || seg.act !== act) {
         if (seg) closeSeg(seg, ts);
         seg = { act, start: ts };
       }
-      if (ts >= today0) {
-        const pace = HISTORY_PACE[act] * (pet.species === 'cat' && act === 'exploring' ? 1.8 : 1);
-        addStats(stats, pet, act, 60, pace);
-      }
+      if (ts >= today0) addStats(stats, pet, act, 60, pace(pet, act));
       if (ts >= nextThought) {
         if (act !== 'sleeping' || rng() < 0.3) {
           const mood = pickMood(pet, act, { ts, outside: false }, rng);
@@ -269,6 +293,7 @@
   function randomIn(rect, pad) {
     return { x: U.rand(rect.x + pad, rect.x + rect.w - pad), y: U.rand(rect.y + pad, rect.y + rect.h - pad) };
   }
+  const near = (p, radius) => ({ x: p.x + U.rand(-radius, radius), y: p.y + U.rand(-radius, radius) });
   function roamPoint(outside) {
     const c = C.MAP.zoneCenter;
     const radius = settings().safeRadius;
@@ -276,6 +301,7 @@
     const a = U.rand(0, Math.PI * 2);
     return inMap({ x: c.x + Math.cos(a) * dist, y: c.y + Math.sin(a) * dist });
   }
+  const spotsFor = (pet) => C.MAP.spots[species(pet).home] || C.MAP.spots.house;
 
   // ---- runtime ------------------------------------------------------------------
   // Seconds each live activity lasts at 1× demo speed (walks and runs follow a route instead).
@@ -297,27 +323,68 @@
       sleeping: { resting: 2, exploring: 1, eating: 1 },
       resting: { sleeping: 3, exploring: 2, playing: 1, eating: 1 },
       eating: { resting: 2, sleeping: 1 },
-      walking: { resting: 2, sleeping: 1 },
       exploring: { resting: 2, sleeping: 1, playing: 1 },
       playing: { resting: 2, running: 1 },
       running: { resting: 2, sleeping: 1 },
     },
+    rabbit: {
+      sleeping: { resting: 2, eating: 1 },
+      resting: { eating: 2, exploring: 2, playing: 1, sleeping: 2 },
+      eating: { resting: 2, exploring: 1 },
+      exploring: { resting: 2, playing: 1, eating: 1 },
+      playing: { running: 1, resting: 2 },
+      running: { resting: 2 },
+    },
+    bird: {
+      sleeping: { resting: 2, eating: 1 },
+      resting: { playing: 2, running: 1, eating: 1, sleeping: 1 },
+      eating: { resting: 2, playing: 1 },
+      exploring: { resting: 2 },
+      playing: { resting: 2, running: 1 },
+      running: { resting: 2, playing: 1 },
+    },
+    hamster: {
+      sleeping: { resting: 2, running: 1 },
+      resting: { running: 3, eating: 2, sleeping: 2, exploring: 1 },
+      eating: { sleeping: 2, resting: 1 },
+      exploring: { resting: 1, running: 1 },
+      playing: { resting: 1 },
+      running: { eating: 1, resting: 2 },
+    },
+    horse: {
+      sleeping: { resting: 2 },
+      resting: { eating: 3, walking: 2, exploring: 1, sleeping: 1 },
+      eating: { resting: 2, walking: 1 },
+      walking: { resting: 2, eating: 1 },
+      exploring: { eating: 1, resting: 1 },
+      playing: { running: 1, resting: 1 },
+      running: { resting: 2, eating: 1 },
+    },
+    turtle: {
+      sleeping: { resting: 2 },
+      resting: { eating: 1, exploring: 2, sleeping: 2 },
+      eating: { resting: 2 },
+      exploring: { resting: 2, eating: 1 },
+      playing: { resting: 1 },
+      running: { resting: 1 },
+    },
   };
+  const OPENING = { cat: 'exploring', rabbit: 'exploring', bird: 'playing', hamster: 'running', horse: 'eating', turtle: 'resting' };
 
   function ensure(pet, index) {
     let r = runtimes.get(pet.id);
     if (r) return r;
-    const spot = C.MAP.spots.couch;
+    const spot = spotsFor(pet).couch;
     r = {
       petId: pet.id,
       activity: 'resting', segStartTs: Date.now(), segSec: 0, segMeters: 0, activityLeft: 30,
       pos: { x: spot.x + U.rand(-6, 6), y: spot.y + U.rand(-4, 4) },
-      route: null, targets: [], wander: null, anchor: null, relocate: false,
+      route: null, targets: [], wander: null, anchor: null, wheel: false,
       trail: [], trailAcc: 0,
       hr: hrTarget(pet, 'resting'), hrBoost: 0, temp: tempTarget(pet, 'resting'), breath: breathTarget(pet, 'resting'),
       mood: 'happy', zone: 'Home', inZone: true,
       nextThoughtAt: Date.now() + U.rand(6, 14) * 1000,
-      recent: [], lastThought: null,
+      recent: [], recentTalk: [], lastThought: null,
       live: [], minuteSum: 0, minuteCount: 0, minuteKey: Math.floor(Date.now() / U.MIN),
       lowWarned: pet.device.battery < 20,
       lastFix: Date.now(),
@@ -328,14 +395,16 @@
       r.lastThought = lastThought;
       r.mood = lastThought.mood;
     }
-    const opening = pet.species === 'cat' ? 'exploring' : index === 0 ? 'walking' : 'playing';
-    startActivity(pet, r, index == null ? 'resting' : opening, { silent: true });
+    let opening = 'resting';
+    if (index != null) opening = pet.species === 'dog' ? (index === 0 ? 'walking' : 'playing') : OPENING[pet.species] || 'resting';
+    startActivity(pet, r, opening, { silent: true });
     // A few minutes of recent readings so the live chart starts full.
     const target = hrTarget(pet, r.activity);
+    const [lo, hi] = restRange(pet);
     const now = Date.now();
     let v = target;
     for (let i = 36; i >= 1; i--) {
-      v = v * 0.7 + target * 0.3 + U.gauss() * 2;
+      v = v * 0.7 + target * 0.3 + U.gauss() * Math.max(1.5, (hi - lo) * 0.04);
       r.live.push({ t: now - i * 5000, v: Math.round(v) });
     }
     r.hr = v;
@@ -344,6 +413,8 @@
 
   function startActivity(pet, r, act, opts) {
     const o = opts || {};
+    const sp = species(pet);
+    if (act === 'walking' && !sp.canWalk) act = 'exploring';
     if (!o.silent && r.activity) {
       const entry = activityEntry(pet, r.activity, r.segStartTs, r.segSec, r.segMeters);
       if (entry) emit('activity-log', entry);
@@ -356,59 +427,78 @@
     r.targets = [];
     r.wander = null;
     r.anchor = null;
+    r.wheel = false;
     const d = DURATIONS[act];
     r.activityLeft = o.duration || U.rand(d[0], d[1]);
     const M = C.MAP;
-    const cat = pet.species === 'cat';
+    const kind = pet.species;
+    const spots = spotsFor(pet);
+    const inHouse = () => randomIn(M.homeHouse, 8);
+    const inYard = () => randomIn(M.backyard, 10);
     switch (act) {
       case 'walking':
-        r.route = { pts: !cat && Math.random() < 0.55 ? C.ROUTES.park : C.ROUTES.block, i: 0 };
+        r.route = { pts: kind === 'dog' && Math.random() < 0.45 ? C.ROUTES.block : C.ROUTES.park, i: 0 };
         break;
       case 'running':
-        if (cat) {
-          r.activityLeft = o.duration || U.rand(12, 20);
-          r.wander = () => (Math.random() < 0.5 ? randomIn(M.backyard, 10) : randomIn(M.homeHouse, 8));
-        } else {
+        if (kind === 'dog' || kind === 'horse') {
           r.route = { pts: C.ROUTES.run, i: 0 };
+        } else {
+          r.activityLeft = o.duration || U.rand(12, 20);
+          if (kind === 'hamster') {
+            r.wheel = true; // running in place on the wheel
+            r.targets = [near(spots.bed, 2)];
+          } else if (kind === 'bird') {
+            r.wander = inHouse; // flying laps around the living room
+          } else if (kind === 'cat') {
+            r.wander = () => (Math.random() < 0.5 ? inYard() : inHouse());
+          } else {
+            r.wander = inYard;
+          }
         }
         break;
       case 'playing':
-        r.wander = () => randomIn(M.backyard, 12);
+        r.wander = kind === 'bird' || kind === 'hamster' ? () => near(spots.couch, kind === 'hamster' ? 5 : 14) : inYard;
         break;
       case 'exploring':
-        if (cat) {
-          const outsideChance = 0.35;
-          r.targets = [roamPoint(false), roamPoint(Math.random() < outsideChance), roamPoint(false)];
+        if (kind === 'cat') {
+          r.targets = [roamPoint(false), roamPoint(Math.random() < 0.35), roamPoint(false)];
           r.wander = () => roamPoint(Math.random() < 0.2);
-        } else {
+        } else if (kind === 'dog') {
           r.wander = () => (Math.random() < 0.75 ? randomIn(M.backyard, 8) : { x: U.rand(300, 400), y: U.rand(312, 326) });
+        } else if (kind === 'bird' || kind === 'hamster') {
+          r.wander = kind === 'hamster' ? () => near(spots.bed, 6) : inHouse;
+        } else {
+          r.wander = inYard;
         }
         break;
       default: {
-        const spot = act === 'sleeping' ? M.spots.bed : act === 'eating' ? M.spots.bowl : M.spots.couch;
-        r.targets = [{ x: spot.x + U.rand(-4, 4), y: spot.y + U.rand(-3, 3) }];
+        const spot = act === 'sleeping' ? spots.bed : act === 'eating' ? spots.bowl : spots.couch;
+        r.targets = [near(spot, 3)];
       }
     }
     if (o.outside) {
       r.targets = [roamPoint(true)];
       r.wander = null;
+      r.wheel = false;
     }
     emit('activity', { petId: pet.id, activity: act });
   }
 
   function nextActivity(pet, r) {
-    const w = Object.assign({}, NEXT[pet.species][r.activity]);
+    const table = NEXT[pet.species] || NEXT.dog;
+    const w = Object.assign({}, table[r.activity] || { resting: 1 });
     const hour = new Date().getHours();
     if ((hour >= 7 && hour < 9) || (hour >= 17 && hour < 19)) w.eating = (w.eating || 0) * 3 + 0.5;
-    if (pet.species === 'cat') delete w.walking;
+    if (!species(pet).canWalk) delete w.walking;
     return U.weighted(w) || 'resting';
   }
 
   function move(pet, r, dt) {
     const act = C.ACTIVITIES[r.activity];
+    const mult = species(pet).speed;
     let moved = 0;
     if (r.route) {
-      let budget = act.speed * dt;
+      let budget = act.speed * mult * dt;
       while (budget > 0 && r.route.i < r.route.pts.length) {
         const [tx, ty] = r.route.pts[r.route.i];
         const d = Math.hypot(tx - r.pos.x, ty - r.pos.y);
@@ -435,7 +525,7 @@
     if (r.targets.length) {
       const t = r.targets[0];
       const far = Math.hypot(t.x - r.pos.x, t.y - r.pos.y);
-      const speed = act.speed || (far > 60 ? 7 : 3.2);
+      const speed = (act.speed || (far > 60 ? 7 : 3.2)) * mult;
       let budget = speed * dt;
       while (budget > 0 && r.targets.length) {
         const tgt = r.targets[0];
@@ -472,8 +562,10 @@
     r.segSec += dt;
     if (r.activityLeft <= 0 && !r.route) startActivity(pet, r, nextActivity(pet, r));
 
-    const moved = move(pet, r, dt);
-    r.segMeters += moved;
+    let moved = move(pet, r, dt);
+    // A hamster on its wheel covers ground without going anywhere.
+    const wheelMeters = r.wheel ? 3 * dt : 0;
+    r.segMeters += moved + wheelMeters;
     r.lastFix = now;
 
     r.trailAcc += moved;
@@ -484,8 +576,9 @@
     }
 
     // Body signals ease toward the activity's target with a little noise.
+    const [lo, hi] = restRange(pet);
     const hrGoal = hrTarget(pet, r.activity) + r.hrBoost;
-    r.hr += (hrGoal - r.hr) * (1 - Math.exp(-dt / 5)) + U.gauss() * 0.9 * Math.min(1, realDt);
+    r.hr += (hrGoal - r.hr) * (1 - Math.exp(-dt / 5)) + U.gauss() * Math.max(0.9, (hi - lo) * 0.02) * Math.min(1, realDt);
     r.hrBoost *= Math.exp(-dt / 25);
     r.temp += (tempTarget(pet, r.activity) - r.temp) * (1 - Math.exp(-dt / 60));
     r.breath += (breathTarget(pet, r.activity) - r.breath) * (1 - Math.exp(-dt / 8)) + U.gauss() * 0.3;
@@ -501,7 +594,7 @@
     const inZone = home.meters <= settings().safeRadius;
     if (inZone !== r.inZone) {
       r.inZone = inZone;
-      emit('zone', { petId: pet.id, inZone, withOwner: !!C.ACTIVITIES[r.activity].withOwner, zone });
+      emit('zone', { petId: pet.id, inZone, withOwner: !!C.ACTIVITIES[r.activity].withOwner && !!r.route, zone });
     }
 
     // Battery: the translator's speaker costs extra.
@@ -514,7 +607,7 @@
       r.lowWarned = false;
     }
 
-    Paw.store.addStats(pet.id, r.activity, dt, moved);
+    Paw.store.addStats(pet.id, r.activity, dt, moved + wheelMeters);
 
     // Heart-rate history: one value per real minute.
     r.minuteSum += r.hr * realDt;
@@ -559,6 +652,14 @@
     r.nextThoughtAt = Date.now() + (U.rand(lo, hi) / s.speed) * 1000;
   }
 
+  function startle(pet, r, mood) {
+    if (mood === 'nervous' && !C.ACTIVITIES[r.activity].active) {
+      const [lo, hi] = restRange(pet);
+      r.hrBoost = (hi - lo) * 0.6;
+      emit('hr-spike', { petId: pet.id });
+    }
+  }
+
   // Generate a translation now. Returns the thought, or null if the pet is unknown.
   function think(petId, opts) {
     const pet = petById(petId);
@@ -570,25 +671,32 @@
     if (r.recent.length > 6) r.recent.shift();
     r.mood = mood;
     r.lastThought = t;
-    if (mood === 'nervous' && !C.ACTIVITIES[r.activity].active) {
-      const [lo, hi] = restRange(pet);
-      r.hrBoost = (hi - lo) * 0.6;
-      emit('hr-spike', { petId: pet.id });
-    }
+    startle(pet, r, mood);
     scheduleNext(pet, r);
     t.manual = !!(opts && opts.manual);
     emit('thought', t);
     return t;
   }
 
-  // The same line in another language (every language lists its lines in the same order).
-  function retranslate(t, lang) {
-    const m = /^(\w+)\.(a|dog|cat)(\d+)$/.exec((t && t.key) || '');
-    if (!m) return null;
-    const group = (Paw.phrases.bank[langShort(lang)] || {})[m[1]];
-    const list = group && (m[2] === 'a' ? group.all : group[m[2]]);
-    const text = list && list[Number(m[3])];
-    return text ? Object.assign({}, t, { lang, text }) : null;
+  // The pet answers something the owner said. Returns the reply (a thought with a prompt).
+  // said: what the owner said; sounds: how it came out in the pet's own sounds.
+  function respond(petId, said, sounds) {
+    const pet = petById(petId);
+    if (!pet) return null;
+    const r = ensure(pet);
+    const rep = Paw.talk.reply(pet, said, r);
+    const t = {
+      kind: 'thought', petId: pet.id, ts: Date.now(), mood: rep.mood, lang: pet.translator.lang,
+      text: rep.text, key: rep.key, sound: soundFor(pet, rep.mood), prompt: String(said).slice(0, 140), intent: rep.intent,
+    };
+    if (sounds) t.promptSounds = String(sounds).slice(0, 200);
+    r.mood = t.mood;
+    r.lastThought = t;
+    startle(pet, r, t.mood);
+    scheduleNext(pet, r); // don't talk over the reply with a random thought
+    t.manual = true;
+    emit('thought', t);
+    return t;
   }
 
   function translatorChanged(petId, on) {
@@ -613,7 +721,7 @@
   }
 
   Paw.sim = {
-    on, start, resume, think, translatorChanged, forceActivity,
+    on, start, resume, think, respond, translatorChanged, forceActivity,
     runtime: (id) => runtimes.get(id),
     ensure: (pet) => ensure(pet),
     remove: (id) => runtimes.delete(id),
