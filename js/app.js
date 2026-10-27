@@ -472,6 +472,7 @@
           }
           if (d.key === 'motion') applyMotion();
           if (d.key === 'uiLang') {
+            U.storage.set(C.LANG_KEY, d.value);
             applyLanguage();
             refreshView();
             ui.announce(t('Language changed to {language}.', { language: Paw.i18n.languageName(Paw.i18n.locale) }));

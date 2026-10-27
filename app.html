@@ -22,7 +22,7 @@
       document.documentElement.dataset.themeOwner = 'app';
     }
     if (saved.motion === 'reduce' || saved.motion === 'full') document.documentElement.dataset.motion = saved.motion;
-    var uiLang = { en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-BR', ja: 'ja-JP' }[saved.uiLang];
+    var uiLang = { en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-BR', ja: 'ja-JP' }[saved.uiLang || localStorage.getItem('petlink.lang')];
     if (uiLang) document.documentElement.lang = uiLang;
   } catch (e) { /* storage unavailable: use system settings */ }
 </script>

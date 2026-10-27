@@ -1,8 +1,11 @@
 /* Offline support. Network first (so edits show up right away), cached copy when offline. */
-const CACHE = 'petlink-v6';
+const CACHE = 'petlink-v7';
 const ASSETS = [
   './',
   'index.html',
+  'app.html',
+  'css/landing.css',
+  'js/landing.js',
   'manifest.webmanifest',
   'css/styles.css',
   'js/config.js',

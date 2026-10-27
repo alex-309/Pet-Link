@@ -202,7 +202,7 @@
       state = normalize(loaded);
       backfill();
     } else {
-      seed();
+      seed({ uiLang: U.storage.get(C.LANG_KEY) || 'auto' });
       persist();
     }
     storageOk = U.storage.set('petlink.probe', '1');

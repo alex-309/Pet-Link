@@ -2,7 +2,7 @@
   "name": "Pet-Link",
   "short_name": "Pet-Link",
   "description": "Demo app for a fictional smart pet collar: simulated GPS, heart rate, activity logs and a just-for-fun pet translator.",
-  "start_url": "./#home",
+  "start_url": "./app.html#home",
   "scope": "./",
   "display": "standalone",
   "background_color": "#e9efe0",

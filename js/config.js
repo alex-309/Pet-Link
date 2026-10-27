@@ -5,10 +5,11 @@
   const Paw = (window.Paw = window.Paw || {});
 
   // Product name. If you rename the app, also update <title> and the brand
-  // aria-labels in index.html, manifest.webmanifest and README.md.
+  // aria-labels in app.html, the <title> of index.html, manifest.webmanifest and README.md.
   const APP_NAME = 'Pet-Link';
   const STORAGE_KEY = 'petlink.v2';
   const ACK_KEY = 'petlink.ack';
+  const LANG_KEY = 'petlink.lang'; // the interface language, shared by the landing page and the app
   const MAX_PETS = 6; // one identity color per pet (validated categorical palette)
   const MAX_LOGS = 1200;
 
@@ -230,7 +231,7 @@
   };
 
   Paw.config = {
-    APP_NAME, STORAGE_KEY, ACK_KEY, MAX_PETS, MAX_LOGS,
+    APP_NAME, STORAGE_KEY, ACK_KEY, LANG_KEY, MAX_PETS, MAX_LOGS,
     SPECIES, SPECIES_ORDER, SIZES, ACTIVITIES, ACTIVITY_ORDER, activityLabel, MOODS, MOOD_ORDER,
     LANGUAGES, VOICE_STYLES, COATS, LOG_TYPES, MANUAL_TYPES, LOG_CATEGORIES,
     ACTIVITY_LOG_TYPE, SIM_SPEEDS, CHATTINESS, MAP, ROUTES,

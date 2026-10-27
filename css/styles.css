@@ -265,6 +265,8 @@ body::before {
 h1, h2, h3, p, ul, ol, dl, dd, figure, blockquote { margin: 0; }
 ul, ol { padding: 0; list-style: none; }
 h1, h2, h3 { text-wrap: balance; }
+/* Japanese has no spaces: break headings between phrases, not inside words (Chrome; others ignore it). */
+:lang(ja) :is(h1, h2, h3) { word-break: auto-phrase; }
 img, svg { max-width: 100%; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }

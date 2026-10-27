@@ -8,13 +8,17 @@ A demo app for a fictional smart pet collar: live location, heart rate and activ
 
 There's nothing to install or build.
 
-- **Quickest:** open `index.html` in Chrome, Edge, Safari or Firefox.
+- **Quickest:** open `index.html` (the landing page) in Chrome, Edge, Safari or Firefox, then choose **Try the demo**. To skip the landing page, open `app.html`.
 - **Recommended:** run a small local server from this folder, which also enables offline mode and "Install app":
   ```sh
   python3 -m http.server 8000
   ```
   Then open <http://localhost:8000>.
 - **Phone or tablet:** keep the server running, connect the device to the same Wi-Fi, and open `http://<your-computer's-IP>:8000`.
+
+## Landing page
+
+`index.html` introduces Pet-Link: what the collar does, a live mini demo where you tap a phrase and hear it as your pet's sounds before the pet answers out loud, the seven animals and their sounds, the demo's disclaimers, and links into the app. It's available in all seven languages and shares the language choice with the app.
 
 ## What's in the demo
 
@@ -36,7 +40,7 @@ On the Translator page, say something to the selected pet. Your words play throu
 
 ## Languages
 
-The globe button in the top bar switches the whole app between English, Spanish, French, German, Italian, Portuguese and Japanese. The same choice is in Settings → Language and appearance and on the welcome screen. On first visit the app follows the browser's language. Changing it also changes the quick phrases, the language the microphone listens for, and the default translator language for new pets. Each pet keeps speaking its own translator language.
+The globe button in the top bar (on the landing page too) switches the whole site between English, Spanish, French, German, Italian, Portuguese and Japanese. The same choice is in Settings → Language and appearance and on the welcome screen. On first visit the app follows the browser's language. Changing it also changes the quick phrases, the language the microphone listens for, and the default translator language for new pets. Each pet keeps speaking its own translator language.
 
 Interface text is written in English and looked up with `t('English text')`. The translations live in `js/i18n/<language>.js`, keyed by that English text; anything missing falls back to English. When you add or change interface text, add the same key to all six language files. Log entries are stored in English and translated when shown, so changing language also changes older entries.
 
@@ -59,8 +63,11 @@ If a language has no voice on the device, French on some computers for example, 
 ## Project structure
 
 ```
-index.html            App shell, navigation and icon set
+index.html            Landing page
+app.html              App shell, navigation and icon set
 css/styles.css        Design tokens (top of file), layout, components, light and dark themes
+css/landing.css       Landing page layout (uses the tokens and components in styles.css)
+js/landing.js         Landing page content and its mini demo
 js/config.js          App name, species, activities, moods, languages, the fictional map
 js/i18n.js            The app's language: looks up interface text, dates and numbers
 js/i18n/              Interface text in Spanish, French, German, Italian, Portuguese and Japanese
@@ -85,7 +92,7 @@ Built to meet WCAG 2.2 AA: landmarks and headings, full keyboard support, visibl
 
 ## Privacy and legal notes
 
-- **Name.** Before launching publicly, run a trademark search on "Pet-Link": "PetLink" is a registered trademark of Datamars, Inc. for a pet microchip registry and lost-pet recovery service. The name is set by `APP_NAME` in `js/config.js`, plus the `<title>` and both brand `aria-label`s in `index.html`, `manifest.webmanifest` and this README.
+- **Name.** Before launching publicly, run a trademark search on "Pet-Link": "PetLink" is a registered trademark of Datamars, Inc. for a pet microchip registry and lost-pet recovery service. The name is set by `APP_NAME` in `js/config.js`, plus the `<title>` of `index.html` and `app.html`, the brand `aria-label`s in `app.html`, `manifest.webmanifest` and this README.
 - **No data collection.** No accounts, analytics, cookies or third-party requests. Pets, settings and logs stay in the browser's local storage. Settings → Data and privacy can export or delete them.
 - **Not a medical device, and the translations are fiction.** Disclaimers appear on first launch, on the Health and Translator pages, and in Settings → About and legal.
 - **Assets.** All illustrations, icons and the map were made for this project; no map service is used. Typefaces: Inter and Fredoka, both under the SIL Open Font License 1.1 (license texts in `assets/fonts/`).
