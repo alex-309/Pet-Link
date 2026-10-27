@@ -22,7 +22,7 @@
     theme: 'system', motion: 'system', units: guessUnits(),
     speed: 1, chattiness: 'normal', paused: false, quiet: false,
     chime: true, announce: true, zoneAlerts: true, safeRadius: 160,
-    talkLang: 'auto', micConsent: false,
+    talkLang: 'auto', micConsent: false, uiLang: 'auto',
   };
 
   const SAMPLE_PETS = [
@@ -323,7 +323,7 @@
   }
 
   function resetAll() {
-    const keep = state ? { theme: state.settings.theme, motion: state.settings.motion, units: state.settings.units } : {};
+    const keep = state ? { theme: state.settings.theme, motion: state.settings.motion, units: state.settings.units, uiLang: state.settings.uiLang } : {};
     U.storage.remove(C.STORAGE_KEY);
     seed(keep);
     flush();

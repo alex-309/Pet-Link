@@ -81,7 +81,7 @@
     s += `<g class="chart__hover" visibility="hidden"><line class="chart__cross" y1="${pad.t}" y2="${base}"/><circle class="chart__hdot" r="5" style="fill:${opts.color}"/></g>`;
     s += '</svg>';
 
-    el.innerHTML = `<div class="chart__frame" tabindex="0" role="group" aria-label="${U.esc(opts.label)}. Use the left and right arrow keys to read values.">${s}<div class="chart__tip" role="status" aria-live="polite" hidden></div></div>`;
+    el.innerHTML = `<div class="chart__frame" tabindex="0" role="group" aria-label="${U.esc(opts.label)}. ${U.esc(Paw.i18n.t('Use the left and right arrow keys to read values.'))}">${s}<div class="chart__tip" role="status" aria-live="polite" hidden></div></div>`;
 
     const frame = el.firstElementChild;
     const svg = frame.querySelector('svg');

@@ -7,6 +7,7 @@
   const C = Paw.config;
   const U = Paw.util;
   const ui = () => Paw.ui;
+  const t = (k, v) => Paw.i18n.t(k, v);
   let typeTimer = null;
   let previewTimer = null;
   let typing = false; // "Type instead" chosen for this visit
@@ -26,48 +27,51 @@
     return 'other';
   }
   const HELP = {
-    mac: 'Open System Settings, then Accessibility, then Spoken Content (called Read & Speak on newer macOS). Next to System voice, choose Manage Voices and add a {lang} voice.',
-    ios: 'Open Settings, then Accessibility, then Spoken Content, then Voices. Choose {lang} and download a voice.',
-    windows: 'Open Settings, then Time & language, then Speech. Under Manage voices, choose Add voices and pick {lang}.',
-    android: 'Open Settings, then System, then Languages & input, then Text-to-speech output. Under the preferred engine, install the {lang} voice data.',
-    chromeos: 'Open Settings, then Accessibility, then Text-to-speech, then Speech engines, and add a {lang} voice.',
-    other: "Add a {lang} text-to-speech voice in your device's accessibility or speech settings.",
+    mac: 'Open System Settings, then Accessibility, then Spoken Content (called Read & Speak on newer macOS). Next to System voice, choose Manage Voices and add a {language} voice.',
+    ios: 'Open Settings, then Accessibility, then Spoken Content, then Voices. Choose {language} and download a voice.',
+    windows: 'Open Settings, then Time & language, then Speech. Under Manage voices, choose Add voices and pick {language}.',
+    android: 'Open Settings, then System, then Languages & input, then Text-to-speech output. Under the preferred engine, install the {language} voice data.',
+    chromeos: 'Open Settings, then Accessibility, then Text-to-speech, then Speech engines, and add a {language} voice.',
+    other: "Add a {language} text-to-speech voice in your device's accessibility or speech settings.",
   };
+  const langName = (code) => Paw.i18n.languageName(code);
 
   function voiceInfo(pet) {
-    const L = ui().language(pet.translator.lang);
-    if (!Paw.voice.supported) return { kind: 'none', text: 'This browser can’t speak out loud, so translations appear as text only.' };
-    if (!Paw.voice.ready) return { kind: 'loading', text: 'Looking for voices on this device…' };
-    if (!Paw.voice.voiceCount) return { kind: 'none', text: 'This browser didn’t provide any voices, so translations appear as text only.' };
+    const lang = pet.translator.lang;
+    if (!Paw.voice.supported) return { kind: 'none', text: t('This browser can’t speak out loud, so translations appear as text only.') };
+    if (!Paw.voice.ready) return { kind: 'loading', text: t('Looking for voices on this device…') };
+    if (!Paw.voice.voiceCount) return { kind: 'none', text: t('This browser didn’t provide any voices, so translations appear as text only.') };
     const chosenName = pet.translator.voiceName;
-    const chosen = chosenName && Paw.voice.voicesFor(pet.translator.lang).find((x) => x.name === chosenName);
-    const v = Paw.voice.voiceFor(pet.translator.lang, chosenName);
+    const chosen = chosenName && Paw.voice.voicesFor(lang).find((x) => x.name === chosenName);
+    const v = Paw.voice.voiceFor(lang, chosenName);
     if (v) {
-      const swap = chosen && Paw.voice.isBroken(chosen) ? `${chosen.name} didn’t make a sound on this device, so ${pet.name} uses ${v.name} instead. ` : '';
-      return { kind: swap ? 'missing' : 'ok', text: swap + `Speaks with ${v.name}${v.localService === false ? ', an online voice from your browser.' : ', a voice on this device.'}` };
+      const swap = chosen && Paw.voice.isBroken(chosen) ? t('{voice} didn’t make a sound on this device, so {name} uses {other} instead.', { voice: chosen.name, name: pet.name, other: v.name }) + ' ' : '';
+      const where = v.localService === false ? t('Speaks with {voice}, an online voice from your browser.', { voice: v.name }) : t('Speaks with {voice}, a voice on this device.', { voice: v.name });
+      return { kind: swap ? 'missing' : 'ok', text: swap + where };
     }
-    const alt = Paw.voice.fallbackLang(L.short);
-    const altName = alt ? ui().language(alt).english : null;
+    const alt = Paw.voice.fallbackLang(Paw.sim.langShort(lang));
     return {
       kind: 'missing',
-      text: `This device has no working ${L.english} voice${altName ? `, so ${pet.name} says the same thing in ${altName} out loud for now` : ''}. The text still appears in ${L.english}.`,
+      text: alt
+        ? t('This device has no working {language} voice, so {name} says the same thing in {other} out loud for now. The text still appears in {language}.', { language: langName(lang), name: pet.name, other: langName(alt) })
+        : t('This device has no working {language} voice. The text still appears in {language}.', { language: langName(lang) }),
     };
   }
   function voiceHelp(pet) {
-    const L = ui().language(pet.translator.lang);
-    return `<details class="voice-help"><summary>How to add a ${U.esc(L.english)} voice</summary>
-      <p>${U.esc(HELP[platform()].replace('{lang}', L.english))}</p>
-      <p>Some browsers, like Chrome, also offer online voices when you’re connected to the internet. Reload this page after adding a voice.</p>
+    const language = langName(pet.translator.lang);
+    return `<details class="voice-help"><summary>${U.esc(t('How to add a {language} voice', { language }))}</summary>
+      <p>${U.esc(t(HELP[platform()], { language }))}</p>
+      <p>${U.esc(t('Some browsers, like Chrome, also offer online voices when you’re connected to the internet. Reload this page after adding a voice.'))}</p>
     </details>`;
   }
   function voiceOptions(pet) {
     const list = Paw.voice.voicesFor(pet.translator.lang);
     const chosen = pet.translator.voiceName || '';
     const auto = Paw.voice.voiceFor(pet.translator.lang);
-    if (!list.length) return `<option value="">${Paw.voice.ready ? 'No voices for this language' : 'Looking for voices…'}</option>`;
-    const where = (v) => (Paw.voice.isBroken(v) ? 'doesn’t work on this device' : v.localService === false ? 'online' : 'on this device');
-    return `<option value=""${chosen ? '' : ' selected'}>Automatic${auto ? ` (${U.esc(auto.name)})` : ''}</option>` +
-      list.map((v) => `<option value="${U.esc(v.name)}"${v.name === chosen ? ' selected' : ''}>${U.esc(v.name)} · ${where(v)}</option>`).join('');
+    if (!list.length) return `<option value="">${U.esc(Paw.voice.ready ? t('No voices for this language') : t('Looking for voices…'))}</option>`;
+    const where = (v) => (Paw.voice.isBroken(v) ? t('doesn’t work on this device') : v.localService === false ? t('online') : t('on this device'));
+    return `<option value=""${chosen ? '' : ' selected'}>${U.esc(auto ? t('Automatic ({voice})', { voice: auto.name }) : t('Automatic'))}</option>` +
+      list.map((v) => `<option value="${U.esc(v.name)}"${v.name === chosen ? ' selected' : ''}>${U.esc(v.name)} · ${U.esc(where(v))}</option>`).join('');
   }
   function updateVoiceUI(root, pet) {
     const select = root.querySelector('#vb-voice-name');
@@ -82,7 +86,7 @@
   }
 
   // ---- conversation -------------------------------------------------------------------
-  const sound = (s) => U.esc(s || '').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  const sound = (s) => U.esc(ui().soundText(s || '')).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
   function petMessage(l, pet) {
     const u = ui();
@@ -92,8 +96,8 @@
         <div class="msg__body">
           <div class="msg__bubble">
             <div class="msg__top">
-              <p class="msg__heard"><span class="bubble__label">Heard</span>${sound(l.sound)}</p>
-              ${l.id ? `<button type="button" class="icon-btn icon-btn--sm" id="play-${lid}" data-action="replay-log" data-log="${lid}" aria-label="Play this" title="Play">${u.icon('play')}</button>` : ''}
+              <p class="msg__heard"><span class="bubble__label">${U.esc(t('Heard'))}</span>${sound(l.sound)}</p>
+              ${l.id ? `<button type="button" class="icon-btn icon-btn--sm" id="play-${lid}" data-action="replay-log" data-log="${lid}" aria-label="${U.esc(t('Play this'))}" title="${U.esc(t('Play'))}">${u.icon('play')}</button>` : ''}
             </div>
             <p class="msg__text" lang="${U.esc(l.lang)}">${U.esc(l.text)}</p>
           </div>
@@ -103,23 +107,23 @@
   }
   // What you said, and underneath it the same thing in your pet's sounds.
   function myMessage(text, ts, sounds, pet) {
-    const kind = Paw.petSounds.label(pet.species);
+    const kind = Paw.petSounds.inLabel(pet.species);
     return `<li class="msg msg--me">
         <div class="msg__body">
           <div class="msg__bubble"><p class="msg__text">${U.esc(text)}</p></div>
           ${sounds ? `<div class="petsay">
-            <p class="petsay__line"><span class="bubble__label">In ${kind}</span><span class="petsay__text">${U.esc(sounds)}</span></p>
-            <button type="button" class="icon-btn icon-btn--sm" data-action="play-sounds" data-pet="${U.esc(pet.id)}" data-text="${U.esc(text)}" aria-label="Play it in ${kind}" title="Play it in ${kind}">${ui().icon('play')}</button>
+            <p class="petsay__line"><span class="bubble__label">${U.esc(kind)}</span><span class="petsay__text">${U.esc(sounds)}</span></p>
+            <button type="button" class="icon-btn icon-btn--sm" data-action="play-sounds" data-pet="${U.esc(pet.id)}" data-text="${U.esc(text)}" aria-label="${U.esc(t('Play it as pet sounds'))}" title="${U.esc(t('Play it as pet sounds'))}">${ui().icon('play')}</button>
           </div>` : ''}
-          <p class="msg__meta"><span>You</span><time datetime="${new Date(ts).toISOString()}">${U.esc(U.fmtTime(ts))}</time></p>
+          <p class="msg__meta"><span>${U.esc(t('You'))}</span><time datetime="${new Date(ts).toISOString()}">${U.esc(U.fmtTime(ts))}</time></p>
         </div>
       </li>`;
   }
   function liveMessage(text) {
     return `<li class="msg msg--me msg--live" id="live-msg">
         <div class="msg__body">
-          <div class="msg__bubble"><p class="msg__text" id="live-text">${text ? U.esc(text) : 'Listening…'}</p></div>
-          <p class="msg__meta"><span class="rec-dot" aria-hidden="true"></span><span>Listening</span></p>
+          <div class="msg__bubble"><p class="msg__text" id="live-text">${U.esc(text || t('Listening…'))}</p></div>
+          <p class="msg__meta"><span class="rec-dot" aria-hidden="true"></span><span>${U.esc(t('Listening'))}</span></p>
         </div>
       </li>`;
   }
@@ -128,7 +132,7 @@
         ${ui().avatar(pet, 'sm')}
         <div class="msg__body"><div class="msg__bubble">
           <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="msg__typing-text">${listening ? 'Listening in…' : U.esc(pet.name) + ' is answering…'}</span>
+          <span class="msg__typing-text">${U.esc(listening ? t('Listening in…') : t('{name} is answering…', { name: pet.name }))}</span>
         </div></div>
       </li>`;
   }
@@ -143,7 +147,7 @@
     waiting.forEach((d) => { html += myMessage(d.text, d.ts, d.sounds, pet); });
     if (live && live.petId === pet.id) html += liveMessage(live.text);
     if (waiting.length || listeningFor.has(pet.id)) html += typingRow(pet, !waiting.length);
-    if (!html) html = `<li class="thread__empty">Say hi to ${U.esc(pet.name)}! Tap the microphone and talk, or pick a phrase below.</li>`;
+    if (!html) html = `<li class="thread__empty">${U.esc(t('Say hi to {name}! Tap the microphone and talk, or pick a phrase below.', { name: pet.name }))}</li>`;
     return html;
   }
   function scrollThread(thread, instant) {
@@ -189,30 +193,31 @@
     const said = String(text || '').trim().slice(0, 140);
     if (!pet || !said) return;
     if (!pet.translator.on) {
-      ui().toast(`${ui().possessive(pet.name)} translator is off. Turn it on to talk.`, { icon: 'info' });
+      ui().toast(t("{name}’s translator is off. Turn it on to talk.", { name: pet.name }), { icon: 'info' });
       return;
     }
     Paw.voice.unlock();
-    const tr = Paw.petSounds.translate(pet, said);
-    const draft = { petId, text: said, sounds: tr.text, ts: Date.now() };
+    const sounds = Paw.petSounds.translate(pet, said);
+    const draft = { petId, text: said, sounds: sounds.text, ts: Date.now() };
     drafts.push(draft);
     renderThread(root, pet, false);
-    if (Paw.store.state.settings.announce) ui().announce(`In ${tr.label}: ${tr.text}`);
-    const seconds = await Paw.app.petSay(petId, tr);
+    if (Paw.store.state.settings.announce) ui().announce(`${Paw.petSounds.inLabel(pet.species)}: ${sounds.text}`);
+    const seconds = await Paw.app.petSay(petId, sounds);
     const think = U.reducedMotion() ? 300 : 700 + Math.min(800, said.length * 10);
     setTimeout(() => {
       const p = Paw.store.getPet(petId);
       if (p && p.translator.on) {
-        Paw.sim.respond(petId, said, tr.text);
+        Paw.sim.respond(petId, said, sounds.text);
       } else if (drafts.indexOf(draft) !== -1) {
         drafts.splice(drafts.indexOf(draft), 1); // translator switched off before the answer
       }
     }, seconds * 1000 + think);
   }
 
+  // The language the microphone listens for: the person's choice, or the app's language.
   const talkLang = () => {
     const s = Paw.store.state.settings.talkLang;
-    return s && s !== 'auto' ? s : navigator.language || 'en-US';
+    return s && s !== 'auto' ? s : Paw.i18n.locale;
   };
   const MIC_ERRORS = {
     'not-allowed': 'Microphone access is blocked. Allow it in your browser’s site settings, or type your message instead.',
@@ -227,10 +232,10 @@
     if (!btn) return;
     btn.classList.toggle('is-listening', on);
     const label = btn.querySelector('#mic-label');
-    if (label) label.textContent = on ? 'Listening… tap to stop' : 'Tap to talk';
+    if (label) label.textContent = on ? t('Listening… tap to stop') : t('Tap to talk');
     else {
-      btn.setAttribute('aria-label', on ? 'Stop listening' : 'Talk with your voice');
-      btn.title = on ? 'Stop listening' : 'Talk with your voice';
+      btn.setAttribute('aria-label', on ? t('Stop listening') : t('Talk with your voice'));
+      btn.title = on ? t('Stop listening') : t('Talk with your voice');
     }
   }
 
@@ -243,9 +248,9 @@
     if (!pet || !pet.translator.on) return;
     if (!Paw.store.state.settings.micConsent) {
       const ok = await ui().confirm({
-        title: 'Talk with your voice?',
-        body: 'Pet-Link turns what you say into text with your browser’s speech recognition, then plays it to your pet as pet sounds. Your browser may send the audio to its maker, such as Google or Apple, to do that. Pet-Link doesn’t record or keep your voice.',
-        confirmLabel: 'Use the microphone',
+        title: t('Talk with your voice?'),
+        body: t('Pet-Link turns what you say into text with your browser’s speech recognition, then plays it to your pet as pet sounds. Your browser may send the audio to its maker, such as Google or Apple, to do that. Pet-Link doesn’t record or keep your voice.'),
+        confirmLabel: t('Use the microphone'),
       });
       if (!ok) return;
       Paw.store.setSetting('micConsent', true);
@@ -259,18 +264,18 @@
     live = { petId: pet.id, text: '' };
     renderThread(root, pet, false);
     setMicState(root, true);
-    ui().announce(`Listening. Say something to ${pet.name}.`);
+    ui().announce(t('Listening. Say something to {name}.', { name: pet.name }));
     const started = Paw.voice.listen({
       lang: talkLang(),
       onInterim: (text) => {
         if (!live) return;
         live.text = text;
         const el = root.querySelector('#live-text');
-        if (el) el.textContent = text || 'Listening…';
+        if (el) el.textContent = text || t('Listening…');
         scrollThread(root.querySelector('#thread'), true);
       },
       onError: (code) => {
-        if (code !== 'aborted') ui().toast(MIC_ERRORS[code] || 'The microphone isn’t available right now. You can type instead.', { icon: 'info' });
+        if (code !== 'aborted') ui().toast(t(MIC_ERRORS[code] || 'The microphone isn’t available right now. You can type instead.'), { icon: 'info' });
       },
       onEnd: (finalText) => {
         done();
@@ -287,33 +292,32 @@
   function composerHTML(pet) {
     const u = ui();
     const pid = U.esc(pet.id);
-    const name = U.esc(pet.name);
-    const kind = Paw.petSounds.label(pet.species);
     const canMic = Paw.voice.canListen;
     const textMode = !canMic || typing;
-    const chips = `<div class="quick" role="group" aria-label="Quick phrases">
-        ${Paw.talk.QUICK.map((q, i) => `<button type="button" class="quick__chip" id="quick-${i}" data-action="talk-quick" data-text="${U.esc(q)}">${U.esc(q)}</button>`).join('')}
+    const chips = `<div class="quick" role="group" aria-label="${U.esc(t('Quick phrases'))}">
+        ${Paw.talk.quick(Paw.i18n.lang).map((q, i) => `<button type="button" class="quick__chip" id="quick-${i}" data-action="talk-quick" data-text="${U.esc(q)}" lang="${U.esc(Paw.i18n.locale)}">${U.esc(q)}</button>`).join('')}
       </div>`;
     const talkRow = textMode ? '' : `<div class="talk">
-        <button type="button" class="talk__mic" id="mic-btn" data-action="talk-mic" aria-describedby="talk-hint">${u.icon('mic')}<span id="mic-label">Tap to talk</span></button>
-        <button type="button" class="icon-btn talk__alt" id="type-btn" data-action="talk-type" aria-label="Type instead" title="Type instead">${u.icon('keyboard')}</button>
+        <button type="button" class="talk__mic" id="mic-btn" data-action="talk-mic" aria-describedby="talk-hint">${u.icon('mic')}<span id="mic-label">${U.esc(t('Tap to talk'))}</span></button>
+        <button type="button" class="icon-btn talk__alt" id="type-btn" data-action="talk-type" aria-label="${U.esc(t('Type instead'))}" title="${U.esc(t('Type instead'))}">${u.icon('keyboard')}</button>
       </div>`;
     const form = `<form class="composer" id="composer" data-pet="${pid}" autocomplete="off"${textMode ? '' : ' hidden'}>
-        <label class="visually-hidden" for="composer-input">Say something to ${name}</label>
-        <input class="input composer__input" id="composer-input" type="text" maxlength="140" placeholder="Say something…" enterkeyhint="send" aria-describedby="talk-hint">
-        ${textMode && canMic ? `<button type="button" class="icon-btn composer__mic" id="mic-btn" data-action="talk-mic" aria-label="Talk with your voice" title="Talk with your voice">${u.icon('mic')}</button>` : ''}
-        <button type="submit" class="btn btn-primary composer__send" id="send-btn">${u.icon('send')}<span>Send</span></button>
+        <label class="visually-hidden" for="composer-input">${U.esc(t('Say something to {name}', { name: pet.name }))}</label>
+        <input class="input composer__input" id="composer-input" type="text" maxlength="140" placeholder="${U.esc(t('Say something…'))}" enterkeyhint="send" aria-describedby="talk-hint">
+        ${textMode && canMic ? `<button type="button" class="icon-btn composer__mic" id="mic-btn" data-action="talk-mic" aria-label="${U.esc(t('Talk with your voice'))}" title="${U.esc(t('Talk with your voice'))}">${u.icon('mic')}</button>` : ''}
+        <button type="submit" class="btn btn-primary composer__send" id="send-btn">${u.icon('send')}<span>${U.esc(t('Send'))}</span></button>
       </form>`;
     const hint = canMic
-      ? `Say something and ${name} hears it in ${kind}, then answers.`
-      : `Voice input isn’t available here, so type what you’d say. ${name} hears it in ${kind}, then answers.`;
-    return `${chips}${talkRow}${form}<p class="talk__hint" id="talk-hint">${hint}</p>`;
+      ? t('Say something and {name} hears it in its own animal sounds, then answers.', { name: pet.name })
+      : t('Voice input isn’t available here, so type what you’d say. {name} hears it in its own animal sounds, then answers.', { name: pet.name });
+    return `${chips}${talkRow}${form}<p class="talk__hint" id="talk-hint">${U.esc(hint)}</p>`;
   }
 
   function levels(volume) {
     const lit = Math.ceil(volume / 20);
     return [0, 1, 2, 3, 4].map((i) => `<i${i < lit ? ' class="on"' : ''}></i>`).join('');
   }
+  const pct = (n) => Paw.i18n.num(n / 100, { style: 'percent' });
 
   Paw.views = Paw.views || {};
   Paw.views.translator = {
@@ -322,97 +326,96 @@
       const pet = Paw.store.selectedPet();
       if (!pet) return Paw.views.noPets('Translator');
       const u = ui();
-      const t = pet.translator;
+      const tr = pet.translator;
       const pid = U.esc(pet.id);
-      const name = U.esc(pet.name);
-      const poss = U.esc(u.possessive(pet.name));
+      const v = { name: pet.name };
       const info = voiceInfo(pet);
-      const composer = t.on
+      const composer = tr.on
         ? composerHTML(pet)
         : `<div class="convo__off">
-              <p>${poss} translator is off, so you can’t talk and ${name} can’t answer.</p>
-              <button type="button" class="btn btn-primary" id="turn-on-btn" data-action="toggle-translator" data-pet="${pid}">${u.icon('power')}Turn translator on</button>
+              <p>${U.esc(t("{name}’s translator is off, so you can’t talk and {name} can’t answer.", v))}</p>
+              <button type="button" class="btn btn-primary" id="turn-on-btn" data-action="toggle-translator" data-pet="${pid}">${u.icon('power')}${U.esc(t('Turn translator on'))}</button>
             </div>`;
       return `<header class="view-head">
           <div class="view-head__text">
-            <p class="eyebrow">${u.icon('chat')}Translator</p>
-            <h1 class="view-title" tabindex="-1">${poss} translator</h1>
+            <p class="eyebrow">${u.icon('chat')}${U.esc(t('Translator'))}</p>
+            <h1 class="view-title" tabindex="-1">${U.esc(t("{name}’s translator", v))}</h1>
           </div>
         </header>
         <div class="tr-layout" style="--pet:${u.petColor(pet)}">
           <div class="tr-col">
-            <section class="card convo${t.on ? '' : ' is-off'}" id="convo" data-speaking="${pid}" aria-labelledby="convo-title">
+            <section class="card convo${tr.on ? '' : ' is-off'}" id="convo" data-speaking="${pid}" aria-labelledby="convo-title">
               <div class="convo__head">
                 ${u.avatar(pet, 'lg')}
                 <div class="convo__who">
-                  <h2 class="card-title" id="convo-title">Talk with ${name}</h2>
-                  <p class="convo__status">${t.on ? u.status('good', 'Listening') : u.status('warning', 'Translator off')}<span class="waves" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span></p>
+                  <h2 class="card-title" id="convo-title">${U.esc(t('Talk with {name}', v))}</h2>
+                  <p class="convo__status">${tr.on ? u.status('good', t('Listening')) : u.status('warning', t('Translator off'))}<span class="waves" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span></p>
                 </div>
                 <div class="convo__tools">
-                  <button type="button" class="btn btn-secondary btn-sm" id="listen-btn" data-action="listen-now" data-pet="${pid}"${t.on ? '' : ' disabled'}>${u.icon('ear')}Listen in</button>
-                  <button type="button" class="icon-btn" id="stop-btn" data-action="stop-voice" aria-label="Stop the voice box" title="Stop the voice box">${u.icon('stop')}</button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="listen-btn" data-action="listen-now" data-pet="${pid}"${tr.on ? '' : ' disabled'}>${u.icon('ear')}${U.esc(t('Listen in'))}</button>
+                  <button type="button" class="icon-btn" id="stop-btn" data-action="stop-voice" aria-label="${U.esc(t('Stop the voice box'))}" title="${U.esc(t('Stop the voice box'))}">${u.icon('stop')}</button>
                 </div>
               </div>
-              <ol class="thread" id="thread" aria-label="Conversation with ${name}">${threadHTML(pet)}</ol>
+              <ol class="thread" id="thread" aria-label="${U.esc(t('Conversation with {name}', v))}">${threadHTML(pet)}</ol>
               ${composer}
-              <p class="convo__note">Pet sounds and replies are made up for fun. Keep the volume gentle around real pets.${Paw.voice.canListen && t.on ? ' The microphone uses your browser’s speech recognition.' : ''}</p>
+              <p class="convo__note">${U.esc(t('Pet sounds and replies are made up for fun. Keep the volume gentle around real pets.'))}${Paw.voice.canListen && tr.on ? ' ' + U.esc(t('The microphone uses your browser’s speech recognition.')) : ''}</p>
             </section>
           </div>
 
           <div class="tr-col">
             <section class="card voicebox" aria-labelledby="vb-title">
               <div class="card-head">
-                <h2 class="card-title" id="vb-title">Voice box</h2>
+                <h2 class="card-title" id="vb-title">${U.esc(t('Voice box'))}</h2>
                 ${u.live('battery', pet)}
               </div>
-              <p class="card-text">The speaker on ${poss} collar. It plays your words to ${name} in ${U.esc(Paw.petSounds.label(pet.species).toLowerCase())} sounds and says ${U.esc(u.possessive(pet.name))} answers out loud. In this demo it plays through your device.</p>
-              <div class="device${t.on ? ' is-on' : ''}" data-speaking="${pid}" aria-hidden="true">
+              <p class="card-text">${U.esc(t("The speaker on {name}’s collar. It plays your words to {name} as animal sounds and says the answers out loud. In this demo it plays through your device.", v))}</p>
+              <div class="device${tr.on ? ' is-on' : ''}" data-speaking="${pid}" aria-hidden="true">
                 <div class="device__body"><span class="device__grille"></span><span class="device__led"></span></div>
-                <div class="device__levels" id="vb-levels">${levels(t.volume)}</div>
+                <div class="device__levels" id="vb-levels">${levels(tr.volume)}</div>
               </div>
               <div class="vb-row">
-                ${u.switchButton({ id: 'vb-power', on: t.on, label: 'Power', srPrefix: u.possessive(pet.name) + ' voice box', action: 'toggle-translator', petId: pet.id })}
-                <span class="vb-state">${t.on ? 'On' : 'Off'}</span>
+                ${u.switchButton({ id: 'vb-power', on: tr.on, label: t('Power'), srLabel: t("{name}’s voice box power", v), action: 'toggle-translator', petId: pet.id })}
+                <span class="vb-state">${U.esc(tr.on ? t('On') : t('Off'))}</span>
               </div>
               <div class="field">
-                <label class="field__label" for="vb-volume">Volume</label>
+                <label class="field__label" for="vb-volume">${U.esc(t('Volume'))}</label>
                 <div class="range-row">
-                  <button type="button" class="icon-btn" id="vb-mute" data-action="toggle-mute" data-pet="${pid}" aria-label="${t.volume ? 'Mute' : 'Unmute'}" title="${t.volume ? 'Mute' : 'Unmute'}">${u.icon(t.volume ? 'volume' : 'volume-off')}</button>
-                  <input type="range" id="vb-volume" min="0" max="100" step="5" value="${t.volume}" data-input="vb-volume" data-pet="${pid}" aria-valuetext="${t.volume}%" style="--val:${t.volume}%">
-                  <output id="vb-volume-out" for="vb-volume">${t.volume}%</output>
+                  <button type="button" class="icon-btn" id="vb-mute" data-action="toggle-mute" data-pet="${pid}" aria-label="${U.esc(tr.volume ? t('Mute') : t('Unmute'))}" title="${U.esc(tr.volume ? t('Mute') : t('Unmute'))}">${u.icon(tr.volume ? 'volume' : 'volume-off')}</button>
+                  <input type="range" id="vb-volume" min="0" max="100" step="5" value="${tr.volume}" data-input="vb-volume" data-pet="${pid}" aria-valuetext="${pct(tr.volume)}" style="--val:${tr.volume}%">
+                  <output id="vb-volume-out" for="vb-volume">${pct(tr.volume)}</output>
                 </div>
               </div>
               <div class="field">
-                <label class="field__label" for="vb-lang">Language</label>
-                <div class="select"><select class="input" id="vb-lang" data-change="vb-lang" data-pet="${pid}">${u.languageOptions(t.lang)}</select>${u.icon('chevron-down', 'select__icon')}</div>
+                <label class="field__label" for="vb-lang">${U.esc(t('Language'))}</label>
+                <div class="select"><select class="input" id="vb-lang" data-change="vb-lang" data-pet="${pid}">${u.languageOptions(tr.lang)}</select>${u.icon('chevron-down', 'select__icon')}</div>
               </div>
               <div class="field">
-                <label class="field__label" for="vb-voice-name">Voice</label>
-                <div class="select"><select class="input" id="vb-voice-name" data-change="vb-voice-name" data-pet="${pid}" aria-describedby="vb-voice-hint"${Paw.voice.voicesFor(t.lang).length ? '' : ' disabled'}>${voiceOptions(pet)}</select>${u.icon('chevron-down', 'select__icon')}</div>
+                <label class="field__label" for="vb-voice-name">${U.esc(t('Voice'))}</label>
+                <div class="select"><select class="input" id="vb-voice-name" data-change="vb-voice-name" data-pet="${pid}" aria-describedby="vb-voice-hint"${Paw.voice.voicesFor(tr.lang).length ? '' : ' disabled'}>${voiceOptions(pet)}</select>${u.icon('chevron-down', 'select__icon')}</div>
                 <p class="field__hint${info.kind === 'missing' ? ' field__hint--warn' : ''}" id="vb-voice-hint">${U.esc(info.text)}</p>
-                <div id="vb-voice-help">${info.kind === 'missing' && !Paw.voice.voiceFor(t.lang) ? voiceHelp(pet) : ''}</div>
+                <div id="vb-voice-help">${info.kind === 'missing' && !Paw.voice.voiceFor(tr.lang) ? voiceHelp(pet) : ''}</div>
               </div>
               <fieldset class="field" data-change="vb-voice" data-pet="${pid}">
-                <legend class="field__label">Voice style</legend>
+                <legend class="field__label">${U.esc(t('Voice style'))}</legend>
                 <div class="segmented segmented--wide">
-                  ${Object.entries(C.VOICE_STYLES).map(([k, v]) => `<label><input type="radio" name="vb-voice" value="${k}"${t.voice === k ? ' checked' : ''}><span>${v.label}</span></label>`).join('')}
+                  ${Object.entries(C.VOICE_STYLES).map(([k, s]) => `<label><input type="radio" name="vb-voice" value="${k}"${tr.voice === k ? ' checked' : ''}><span>${U.esc(t(s.label))}</span></label>`).join('')}
                 </div>
               </fieldset>
-              <button type="button" class="btn btn-secondary btn-block" id="test-btn" data-action="test-speaker" data-pet="${pid}">${u.icon('volume')}Test speaker</button>
+              <button type="button" class="btn btn-secondary btn-block" id="test-btn" data-action="test-speaker" data-pet="${pid}">${u.icon('volume')}${U.esc(t('Test speaker'))}</button>
             </section>
 
             <section class="card tr-all" aria-labelledby="all-tr-title">
-              <h2 class="card-title" id="all-tr-title">Every pet’s voice box</h2>
+              <h2 class="card-title" id="all-tr-title">${U.esc(t('Every pet’s voice box'))}</h2>
               <ul class="pack-controls">${Paw.store.state.pets.map((p) => `
                 <li class="pack-controls__item" style="--pet:${u.petColor(p)}">
                   ${u.avatar(p, 'sm')}
-                  <span class="pack-controls__text"><span class="pack-controls__name">${U.esc(p.name)}</span><span class="pack-controls__sub" data-tr-sub="${U.esc(p.id)}">${U.esc(u.language(p.translator.lang).label)} · ${p.translator.volume}%</span></span>
-                  ${u.switchButton({ id: `all-tr-${p.id}`, on: p.translator.on, label: 'Translator', srPrefix: u.possessive(p.name), action: 'toggle-translator', petId: p.id })}
+                  <span class="pack-controls__text"><span class="pack-controls__name">${U.esc(p.name)}</span><span class="pack-controls__sub" data-tr-sub="${U.esc(p.id)}">${U.esc(u.language(p.translator.lang).label)} · ${pct(p.translator.volume)}</span></span>
+                  ${u.switchButton({ id: `all-tr-${p.id}`, on: p.translator.on, label: t('Translator'), srLabel: t("{name}’s translator", { name: p.name }), action: 'toggle-translator', petId: p.id })}
                 </li>`).join('')}</ul>
             </section>
           </div>
         </div>
-        <p class="disclaimer">${u.icon('info')}<span>Pet sounds, translations and replies are invented for entertainment. They don’t describe what animals actually think or feel.</span></p>`;
+        <p class="disclaimer">${u.icon('info')}<span>${U.esc(t('Pet sounds, translations and replies are invented for entertainment. They don’t describe what animals actually think or feel.'))}</span></p>`;
     },
     mount(root) {
       const form = root.querySelector('#composer');
@@ -449,7 +452,7 @@
       } else if (type === 'translator') {
         const p = Paw.store.getPet(d.id);
         const sub = p && root.querySelector(`[data-tr-sub="${CSS.escape(d.id)}"]`);
-        if (sub) sub.textContent = `${ui().language(p.translator.lang).label} · ${p.translator.volume}%`;
+        if (sub) sub.textContent = `${ui().language(p.translator.lang).label} · ${pct(p.translator.volume)}`;
         if (d.id === pet.id && 'voiceName' in d.patch) updateVoiceUI(root, pet);
       } else if (type === 'voices') {
         updateVoiceUI(root, pet);
@@ -480,13 +483,13 @@
       'vb-volume': (el, e, root) => {
         const volume = Number(el.value);
         Paw.store.setTranslator(el.dataset.pet, { volume });
-        el.setAttribute('aria-valuetext', volume + '%');
+        el.setAttribute('aria-valuetext', pct(volume));
         el.style.setProperty('--val', volume + '%');
-        root.querySelector('#vb-volume-out').textContent = volume + '%';
+        root.querySelector('#vb-volume-out').textContent = pct(volume);
         root.querySelector('#vb-levels').innerHTML = levels(volume);
         const mute = root.querySelector('#vb-mute');
-        mute.setAttribute('aria-label', volume ? 'Mute' : 'Unmute');
-        mute.title = volume ? 'Mute' : 'Unmute';
+        mute.setAttribute('aria-label', volume ? t('Mute') : t('Unmute'));
+        mute.title = volume ? t('Mute') : t('Unmute');
         mute.innerHTML = ui().icon(volume ? 'volume' : 'volume-off');
       },
     },
@@ -497,8 +500,8 @@
         const r = Paw.sim.runtime(id);
         if (r && r.lastThought) r.lastThought = Paw.sim.retranslate(r.lastThought, lang) || r.lastThought;
         Paw.store.setTranslator(id, { lang, voiceName: '' });
-        const L = ui().language(lang);
-        Paw.store.addLog({ kind: 'activity', type: 'device', petId: id, ts: Date.now(), title: 'Translator language changed', detail: L.label === L.english ? L.label : `${L.label} (${L.english})`, source: 'app' });
+        // The language's own name reads the same whatever language the app is in later.
+        Paw.store.addLog({ kind: 'activity', type: 'device', petId: id, ts: Date.now(), title: 'Translator language changed', detail: ui().language(lang).label, source: 'app' });
       },
       'vb-voice-name': (el) => {
         const id = el.dataset.pet;

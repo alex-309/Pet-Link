@@ -8,6 +8,7 @@
   const M = C.MAP;
   const ZOOMS = [1, 1.6, 2.5, 4];
 
+  // Place names are translated when drawn; street names stay as they are.
   const LABELS = [
     { text: 'Bark Park', x: 842, y: 125, p: 1 },
     { text: 'Home', x: 345, y: 396, p: 1, home: true },
@@ -56,7 +57,7 @@
   function labelsLayer() {
     return LABELS.map((l) => {
       const rot = l.rotate ? ` transform="rotate(-90 ${l.x} ${l.y})"` : '';
-      return `<text class="m-label m-label--p${l.p}${l.home ? ' m-label--home' : ''}" x="${l.x}" y="${l.y}" text-anchor="middle" dy="0.35em"${rot}>${U.esc(l.text)}</text>`;
+      return `<text class="m-label m-label--p${l.p}${l.home ? ' m-label--home' : ''}" x="${l.x}" y="${l.y}" text-anchor="middle" dy="0.35em"${rot}>${U.esc(Paw.i18n.t(l.text))}</text>`;
     }).join('');
   }
 

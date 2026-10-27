@@ -4,15 +4,16 @@
   const Paw = (window.Paw = window.Paw || {});
   const U = Paw.util;
   const ui = () => Paw.ui;
+  const t = (k, v) => Paw.i18n.t(k, v);
   let map = null;
 
   function side(pet) {
     const u = ui();
     const s = Paw.store.state.settings;
-    const poss = U.esc(u.possessive(pet.name));
+    const v = { name: pet.name };
     return `<section class="card" aria-labelledby="loc-title">
         <div class="card-head">
-          <h2 class="card-title" id="loc-title">${poss} location</h2>
+          <h2 class="card-title" id="loc-title">${U.esc(t("{name}’s location", v))}</h2>
           ${u.live('safe', pet)}
         </div>
         <div class="loc">
@@ -23,27 +24,27 @@
           </div>
         </div>
         <dl class="kv">
-          <div><dt>Doing</dt><dd>${u.live('activity', pet)}</dd></div>
-          <div><dt>Walked today</dt><dd>${u.live('dist-today', pet)}</dd></div>
-          <div><dt>GPS accuracy</dt><dd>±3 m, simulated</dd></div>
-          <div><dt>Last position</dt><dd>${u.live('fix', pet)}</dd></div>
+          <div><dt>${U.esc(t('Doing'))}</dt><dd>${u.live('activity', pet)}</dd></div>
+          <div><dt>${U.esc(t('Walked today'))}</dt><dd>${u.live('dist-today', pet)}</dd></div>
+          <div><dt>${U.esc(t('GPS accuracy'))}</dt><dd>${U.esc(t('±3 m, simulated'))}</dd></div>
+          <div><dt>${U.esc(t('Last position'))}</dt><dd>${u.live('fix', pet)}</dd></div>
         </dl>
-        <button type="button" class="btn btn-secondary btn-block" id="ping-btn" data-action="ping-collar" data-pet="${U.esc(pet.id)}">${u.icon('bell')}Ping ${poss} collar</button>
+        <button type="button" class="btn btn-secondary btn-block" id="ping-btn" data-action="ping-collar" data-pet="${U.esc(pet.id)}">${u.icon('bell')}${U.esc(t("Ping {name}’s collar", v))}</button>
       </section>
       <section class="card" aria-labelledby="zone-title">
-        <h2 class="card-title" id="zone-title">Safe zone</h2>
-        <p class="card-text">Get an alert when a pet leaves this area on its own. Walks and runs with you don’t trigger alerts.</p>
+        <h2 class="card-title" id="zone-title">${U.esc(t('Safe zone'))}</h2>
+        <p class="card-text">${U.esc(t('Get an alert when a pet leaves this area on its own. Walks and runs with you don’t trigger alerts.'))}</p>
         <div class="field">
-          <label class="field__label" for="zone-radius">Radius around home</label>
+          <label class="field__label" for="zone-radius">${U.esc(t('Radius around home'))}</label>
           <div class="range-row">
             <input type="range" id="zone-radius" min="80" max="300" step="10" value="${s.safeRadius}" data-input="zone-radius" aria-valuetext="${U.esc(U.fmtDistance(s.safeRadius))}" style="--val:${((s.safeRadius - 80) / 220 * 100).toFixed(1)}%">
             <output id="zone-radius-out" for="zone-radius">${U.esc(U.fmtDistance(s.safeRadius))}</output>
           </div>
         </div>
-        ${u.switchButton({ id: 'zone-alerts', on: s.zoneAlerts, label: 'Safe-zone alerts', action: 'toggle-setting', key: 'zoneAlerts' })}
+        ${u.switchButton({ id: 'zone-alerts', on: s.zoneAlerts, label: t('Safe-zone alerts'), action: 'toggle-setting', key: 'zoneAlerts' })}
       </section>
       <section class="card" aria-labelledby="where-title">
-        <h2 class="card-title" id="where-title">Where everyone is</h2>
+        <h2 class="card-title" id="where-title">${U.esc(t('Where everyone is'))}</h2>
         <ul class="where">${Paw.store.state.pets.map((p) => `<li>
           <button type="button" class="where__item" id="where-${U.esc(p.id)}" data-action="select-pet" data-pet="${U.esc(p.id)}" aria-pressed="${p.id === pet.id}" style="--pet:${u.petColor(p)}">
             ${u.avatar(p, 'sm')}
@@ -69,31 +70,31 @@
       const radius = Paw.store.state.settings.safeRadius;
       return `<header class="view-head">
           <div class="view-head__text">
-            <p class="eyebrow">${u.icon('pin')}Live location</p>
-            <h1 class="view-title" tabindex="-1">Live map</h1>
-            <p class="lede">Each collar reports its position every second. Tap a pet to see where it is.</p>
+            <p class="eyebrow">${u.icon('pin')}${U.esc(t('Live location'))}</p>
+            <h1 class="view-title" tabindex="-1">${U.esc(t('Live map'))}</h1>
+            <p class="lede">${U.esc(t('Each collar reports its position every second. Tap a pet to see where it is.'))}</p>
           </div>
         </header>
         <div class="map-layout">
           <section class="card map-card" aria-labelledby="map-card-title">
-            <h2 class="visually-hidden" id="map-card-title">Neighborhood map</h2>
+            <h2 class="visually-hidden" id="map-card-title">${U.esc(t('Neighborhood map'))}</h2>
             <div class="map-card__bar">
-              <div class="map-tools" role="group" aria-label="Map view">
-                <button type="button" class="icon-btn" data-action="map-zoom" data-dir="1" aria-label="Zoom in" title="Zoom in">${u.icon('plus')}</button>
-                <button type="button" class="icon-btn" data-action="map-zoom" data-dir="-1" aria-label="Zoom out" title="Zoom out">${u.icon('minus')}</button>
-                <button type="button" class="btn btn-secondary btn-sm" id="map-follow" data-action="map-follow" aria-pressed="false">${u.icon('target')}<span>Follow <span id="map-follow-name">${U.esc(pet.name)}</span></span></button>
+              <div class="map-tools" role="group" aria-label="${U.esc(t('Map view'))}">
+                <button type="button" class="icon-btn" data-action="map-zoom" data-dir="1" aria-label="${U.esc(t('Zoom in'))}" title="${U.esc(t('Zoom in'))}">${u.icon('plus')}</button>
+                <button type="button" class="icon-btn" data-action="map-zoom" data-dir="-1" aria-label="${U.esc(t('Zoom out'))}" title="${U.esc(t('Zoom out'))}">${u.icon('minus')}</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="map-follow" data-action="map-follow" aria-pressed="false">${u.icon('target')}<span id="map-follow-label">${U.esc(t('Follow {name}', { name: pet.name }))}</span></button>
               </div>
               <div class="map-toggles">
-                <label class="check"><input type="checkbox" id="map-trails" data-change="map-trails" checked><span>Trails</span></label>
-                <label class="check"><input type="checkbox" id="map-zone" data-change="map-zone" checked><span>Safe zone</span></label>
+                <label class="check"><input type="checkbox" id="map-trails" data-change="map-trails" checked><span>${U.esc(t('Trails'))}</span></label>
+                <label class="check"><input type="checkbox" id="map-zone" data-change="map-zone" checked><span>${U.esc(t('Safe zone'))}</span></label>
               </div>
             </div>
-            <div class="map-frame" id="map-frame" tabindex="0" role="group" aria-roledescription="map" aria-label="Neighborhood map" aria-describedby="map-help"></div>
-            <p class="visually-hidden" id="map-help">Arrow keys pan the map and plus or minus zoom. Every pet’s location is also listed under Where everyone is.</p>
+            <div class="map-frame" id="map-frame" tabindex="0" role="group" aria-roledescription="${U.esc(t('map'))}" aria-label="${U.esc(t('Neighborhood map'))}" aria-describedby="map-help"></div>
+            <p class="visually-hidden" id="map-help">${U.esc(t('Arrow keys pan the map and plus or minus zoom. Every pet’s location is also listed under Where everyone is.'))}</p>
             <ul class="map-legend">
-              <li><span class="legend-swatch legend-swatch--home" aria-hidden="true"></span>Home</li>
-              <li><span class="legend-swatch legend-swatch--zone" aria-hidden="true"></span>Safe zone, <span id="legend-radius">${U.esc(U.fmtDistance(radius))}</span> radius</li>
-              <li><span class="legend-swatch legend-swatch--trail" aria-hidden="true"></span>Recent path</li>
+              <li><span class="legend-swatch legend-swatch--home" aria-hidden="true"></span>${U.esc(t('Home'))}</li>
+              <li><span class="legend-swatch legend-swatch--zone" aria-hidden="true"></span><span id="legend-radius">${U.esc(t('Safe zone, {distance} radius', { distance: U.fmtDistance(radius) }))}</span></li>
+              <li><span class="legend-swatch legend-swatch--trail" aria-hidden="true"></span>${U.esc(t('Recent path'))}</li>
             </ul>
           </section>
           <div class="map-side" id="map-side">${side(pet)}</div>
@@ -124,7 +125,7 @@
         const focusId = document.activeElement && sideEl.contains(document.activeElement) ? document.activeElement.id : null;
         sideEl.innerHTML = side(pet);
         if (focusId && document.getElementById(focusId)) document.getElementById(focusId).focus();
-        root.querySelector('#map-follow-name').textContent = pet.name;
+        root.querySelector('#map-follow-label').textContent = t('Follow {name}', { name: pet.name });
         map.setSelected(pet.id);
       } else if (type === 'settings' && d.key === 'safeRadius') {
         map.updateZone();
@@ -132,7 +133,7 @@
         const out = root.querySelector('#zone-radius-out');
         if (out) out.textContent = text;
         const legend = root.querySelector('#legend-radius');
-        if (legend) legend.textContent = text;
+        if (legend) legend.textContent = t('Safe zone, {distance} radius', { distance: text });
       }
     },
     actions: {

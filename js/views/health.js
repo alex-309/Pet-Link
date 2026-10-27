@@ -5,6 +5,7 @@
   const C = Paw.config;
   const U = Paw.util;
   const ui = () => Paw.ui;
+  const t = (k, v) => Paw.i18n.t(k, v);
 
   const RANGES = { live: 'Last 5 minutes', hour: 'Last hour', day: 'Last 12 hours' };
   let range = 'live';
@@ -40,8 +41,8 @@
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(p.v);
     });
-    return Array.from(groups.entries()).map(([t, vs]) => [
-      range === 'live' ? new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }) : U.fmtTime(t),
+    return Array.from(groups.entries()).map(([ts, vs]) => [
+      range === 'live' ? U.fmtClock(ts) : U.fmtTime(ts),
       String(Math.round(vs.reduce((a, b) => a + b, 0) / vs.length)),
       String(Math.min.apply(null, vs)),
       String(Math.max.apply(null, vs)),
@@ -56,29 +57,30 @@
     if (!force && (key === chartKey || Paw.charts.busy(el))) return;
     chartKey = key;
     const [lo, hi] = Paw.sim.restRange(pet);
+    const label = t("{name}’s heart rate, {range}", { name: pet.name, range: Paw.i18n.lower(t(RANGES[range])) });
     Paw.charts.line(el, {
       data: pts,
       band: [lo, hi],
-      bandLabel: 'Usual resting range',
-      unit: 'bpm',
+      bandLabel: t('Usual resting range'),
+      unit: t('bpm'),
       color: ui().petColor(pet),
-      label: `${ui().possessive(pet.name)} heart rate, ${RANGES[range].toLowerCase()}`,
+      label,
       height: 220,
-      xFormat: (t) => U.fmtTime(t),
-      tipFormat: (t) => (range === 'live' ? new Date(t).toLocaleTimeString() : U.fmtTime(t)),
+      xFormat: (ts) => U.fmtTime(ts),
+      tipFormat: (ts) => (range === 'live' ? U.fmtClock(ts) : U.fmtTime(ts)),
       empty: range === 'live'
-        ? 'Collecting live readings. The first points appear within a few seconds.'
-        : 'No history yet. Readings build up while the collar is on.',
+        ? t('Collecting live readings. The first points appear within a few seconds.')
+        : t('No history yet. Readings build up while the collar is on.'),
     });
     const summary = root.querySelector('#hr-summary');
     const table = root.querySelector('#hr-table');
     if (pts.length >= 2) {
       const vs = pts.map((p) => p.v);
-      summary.textContent = `${RANGES[range]}: average ${Math.round(avg(pts))} bpm, lowest ${Math.min.apply(null, vs)}, highest ${Math.max.apply(null, vs)}.`;
-      table.innerHTML = Paw.charts.table(`${ui().possessive(pet.name)} heart rate, ${RANGES[range].toLowerCase()}`, ['Time', 'Average bpm', 'Lowest', 'Highest'], bucketRows(pts));
+      summary.textContent = t('{range}: average {avg} bpm, lowest {low}, highest {high}.', { range: t(RANGES[range]), avg: Math.round(avg(pts)), low: Math.min.apply(null, vs), high: Math.max.apply(null, vs) });
+      table.innerHTML = Paw.charts.table(label, [t('Time'), t('Average bpm'), t('Lowest'), t('Highest')], bucketRows(pts));
     } else {
       summary.textContent = '';
-      table.innerHTML = '<p class="empty-note">No readings yet.</p>';
+      table.innerHTML = `<p class="empty-note">${U.esc(t('No readings yet.'))}</p>`;
     }
   }
 
@@ -88,11 +90,12 @@
     const st = Paw.store.statsFor(pet.id);
     const total = C.ACTIVITY_ORDER.reduce((s, a) => s + (st.bySec[a] || 0), 0);
     const items = C.ACTIVITY_ORDER.map((a) => ({
-      label: C.activityLabel(pet.species, a), icon: C.ACTIVITIES[a].icon, value: st.bySec[a] || 0, display: U.fmtDuration(st.bySec[a] || 0),
+      label: ui().activityName(pet.species, a), icon: C.ACTIVITIES[a].icon, value: st.bySec[a] || 0, display: U.fmtDuration(st.bySec[a] || 0),
     }));
-    Paw.charts.bars(el, { items, animate, color: ui().petColor(pet), label: `Time by activity today for ${pet.name}`, empty: 'No activity recorded yet today.' });
-    root.querySelector('#act-table').innerHTML = Paw.charts.table(`Time by activity today for ${pet.name}`, ['Activity', 'Time', 'Share of day so far'],
-      items.map((i) => [i.label, i.display, total ? Math.round((i.value / total) * 100) + '%' : '0%']));
+    const label = t('Time by activity today for {name}', { name: pet.name });
+    Paw.charts.bars(el, { items, animate, color: ui().petColor(pet), label, empty: t('No activity recorded yet today.') });
+    root.querySelector('#act-table').innerHTML = Paw.charts.table(label, [t('Activity'), t('Time'), t('Share of day so far')],
+      items.map((i) => [i.label, i.display, Paw.i18n.num(total ? i.value / total : 0, { style: 'percent' })]));
   }
 
   // The scale of the resting-range meter.
@@ -204,7 +207,7 @@
   }
 
   function tile(iconName, label, value) {
-    return `<div class="tile"><dt class="tile__label">${ui().icon(iconName)}${label}</dt><dd class="tile__value">${value}</dd></div>`;
+    return `<div class="tile"><dt class="tile__label">${ui().icon(iconName)}${U.esc(t(label))}</dt><dd class="tile__value">${value}</dd></div>`;
   }
 
   Paw.views = Paw.views || {};
@@ -217,35 +220,34 @@
       const [lo, hi] = Paw.sim.restRange(pet);
       const [min, max] = meterScale(pet);
       const band = `left:${(((lo - min) / (max - min)) * 100).toFixed(1)}%;width:${(((hi - lo) / (max - min)) * 100).toFixed(1)}%`;
-      const poss = U.esc(u.possessive(pet.name));
       return `<header class="view-head">
           <div class="view-head__text">
-            <p class="eyebrow">${u.icon('heart')}Vitals</p>
-            <h1 class="view-title" tabindex="-1">${poss} health</h1>
+            <p class="eyebrow">${u.icon('heart')}${U.esc(t('Vitals'))}</p>
+            <h1 class="view-title" tabindex="-1">${U.esc(t("{name}’s health", { name: pet.name }))}</h1>
           </div>
           <div class="view-head__actions">
-            <button type="button" class="btn btn-secondary" data-action="log-entry" data-type="vet">${u.icon('plus')}Log a health event</button>
+            <button type="button" class="btn btn-secondary" data-action="log-entry" data-type="vet">${u.icon('plus')}${U.esc(t('Log a health event'))}</button>
           </div>
         </header>
         <div class="health-top" style="--pet:${u.petColor(pet)}">
           <section class="card hr-card" aria-labelledby="hr-title">
             <div class="card-head">
-              <h2 class="card-title" id="hr-title">Heart rate</h2>
+              <h2 class="card-title" id="hr-title">${U.esc(t('Heart rate'))}</h2>
               ${u.live('hr-status', pet)}
             </div>
             <div class="hr-hero">
               ${u.beatingHeart(pet, 'hr-hero__heart')}
-              <p class="hr-hero__value"><span class="hero-num">${u.live('hr', pet)}</span><span class="hr-hero__unit">bpm</span></p>
+              <p class="hr-hero__value"><span class="hero-num">${u.live('hr', pet)}</span><span class="hr-hero__unit">${U.esc(t('bpm'))}</span></p>
             </div>
             <canvas class="ecg" id="ecg" aria-hidden="true"></canvas>
             <div class="meter" aria-hidden="true">
               <div class="meter__track"><span class="meter__band" style="${band}"></span><span class="meter__mark" id="hr-mark"></span></div>
-              <div class="meter__labels"><span>${min}</span><span>Usual resting range ${lo}–${hi} bpm</span><span>${max}</span></div>
+              <div class="meter__labels"><span>${min}</span><span>${U.esc(t('Usual resting range {low}–{high} bpm', { low: lo, high: hi }))}</span><span>${max}</span></div>
             </div>
             <p class="hr-note">${u.live('hr-note', pet)}</p>
           </section>
           <section class="card vitals-card" aria-labelledby="vitals-title">
-            <h2 class="card-title" id="vitals-title">Today so far</h2>
+            <h2 class="card-title" id="vitals-title">${U.esc(t('Today so far'))}</h2>
             <dl class="tiles">
               ${tile('route', 'Distance', u.live('dist-today', pet))}
               ${tile('paw', 'Steps', u.live('steps', pet))}
@@ -258,26 +260,26 @@
         </div>
         <section class="section" aria-labelledby="hrh-title">
           <div class="section-head">
-            <h2 class="section-title" id="hrh-title">Heart rate history</h2>
+            <h2 class="section-title" id="hrh-title">${U.esc(t('Heart rate history'))}</h2>
             <fieldset class="segmented" data-change="hr-range">
-              <legend class="visually-hidden">Time range</legend>
-              ${Object.entries(RANGES).map(([k, v]) => `<label><input type="radio" name="hr-range" value="${k}"${k === range ? ' checked' : ''}><span>${v}</span></label>`).join('')}
+              <legend class="visually-hidden">${U.esc(t('Time range'))}</legend>
+              ${Object.entries(RANGES).map(([k, v]) => `<label><input type="radio" name="hr-range" value="${k}"${k === range ? ' checked' : ''}><span>${U.esc(t(v))}</span></label>`).join('')}
             </fieldset>
           </div>
           <div class="card chart-card">
             <div class="chart" id="hr-chart"></div>
             <p class="chart-summary" id="hr-summary"></p>
-            <details class="table-view"><summary>Show as a table</summary><div class="table-scroll" id="hr-table" tabindex="0" role="region" aria-label="Heart rate history, table"></div></details>
+            <details class="table-view"><summary>${U.esc(t('Show as a table'))}</summary><div class="table-scroll" id="hr-table" tabindex="0" role="region" aria-label="${U.esc(t('Heart rate history, table'))}"></div></details>
           </div>
         </section>
         <section class="section" aria-labelledby="act-title">
-          <h2 class="section-title" id="act-title">Time by activity today</h2>
+          <h2 class="section-title" id="act-title">${U.esc(t('Time by activity today'))}</h2>
           <div class="card">
             <div id="act-chart"></div>
-            <details class="table-view"><summary>Show as a table</summary><div class="table-scroll" id="act-table" tabindex="0" role="region" aria-label="Time by activity, table"></div></details>
+            <details class="table-view"><summary>${U.esc(t('Show as a table'))}</summary><div class="table-scroll" id="act-table" tabindex="0" role="region" aria-label="${U.esc(t('Time by activity, table'))}"></div></details>
           </div>
         </section>
-        <p class="disclaimer">${u.icon('info')}<span>Simulated readings for demonstration only. This app is not a medical device and doesn’t give veterinary advice. If you’re worried about your pet’s health, contact a veterinarian.</span></p>`;
+        <p class="disclaimer">${u.icon('info')}<span>${U.esc(t('Simulated readings for demonstration only. This app is not a medical device and doesn’t give veterinary advice. If you’re worried about your pet’s health, contact a veterinarian.'))}</span></p>`;
     },
     mount(root) {
       const pet = Paw.store.selectedPet();

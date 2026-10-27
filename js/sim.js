@@ -50,6 +50,7 @@
     return (lo + (hi - lo) * 0.4) * factor;
   }
 
+  // Labels and notes are English keys, translated where they're shown ({activity} is filled in there).
   function hrStatus(pet, r) {
     const [lo, hi] = restRange(pet);
     const act = C.ACTIVITIES[r.activity];
@@ -57,7 +58,7 @@
     if (r.hr > hi * 1.75 + margin) return { level: 'critical', label: 'Very high', note: 'Much higher than usual for this pet (simulated)' };
     if (r.hr > hi + margin) {
       return act.active
-        ? { level: 'good', label: 'Active', note: 'Higher, as expected while ' + C.activityLabel(pet.species, r.activity).toLowerCase() }
+        ? { level: 'good', label: 'Active', note: 'Higher, as expected while {activity}' }
         : { level: 'warning', label: 'Elevated', note: 'Higher than usual while resting' };
     }
     if (r.hr < lo - margin) {

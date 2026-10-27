@@ -188,8 +188,18 @@
     return (list && list[Number(m[3])]) || null;
   }
 
-  // Ready-made things to say, shown as quick buttons.
-  const QUICK = ['Want to go for a walk?', 'Dinner time!', 'Want to play?', "Who's the best? You are!", 'Bath time!', 'How are you?', 'Good night!'];
+  // Ready-made things to say, shown as quick buttons in the interface language. Each one must
+  // still match its intent above: walk, food, play, love, care, how are you, sleep.
+  const QUICK = {
+    en: ['Want to go for a walk?', 'Dinner time!', 'Want to play?', "Who's the best? You are!", 'Bath time!', 'How are you?', 'Good night!'],
+    es: ['¿Vamos de paseo?', '¡Hora de cenar!', '¿Quieres jugar?', '¡Eres el mejor! Te quiero.', '¡Hora del baño!', '¿Cómo estás?', '¡Buenas noches!'],
+    fr: ['On va se promener ?', 'C’est l’heure du dîner !', 'Tu veux jouer ?', 'Tu es le meilleur ! Je t’aime.', 'C’est l’heure du bain !', 'Comment ça va ?', 'Bonne nuit !'],
+    de: ['Gehen wir Gassi?', 'Essenszeit!', 'Willst du spielen?', 'Du bist der Beste! Ich hab dich lieb.', 'Zeit zum Baden!', 'Wie geht’s dir?', 'Gute Nacht!'],
+    it: ['Andiamo a fare una passeggiata?', 'È ora di cena!', 'Vuoi giocare?', 'Sei il migliore! Ti voglio bene.', 'È l’ora del bagno!', 'Come stai?', 'Buonanotte!'],
+    pt: ['Vamos passear?', 'Hora do jantar!', 'Quer brincar?', 'Você é o melhor! Eu te amo.', 'Hora do banho!', 'Como você está?', 'Boa noite!'],
+    ja: ['お散歩に行く？', 'ごはんの時間だよ！', '遊ぼうか？', 'いちばんいい子は誰？きみだよ！', 'お風呂の時間だよ！', '元気？', 'おやすみ！'],
+  };
+  const quick = (lang) => QUICK[lang] || QUICK.en;
 
-  Paw.talk = { intentOf, reply, line, QUICK };
+  Paw.talk = { intentOf, reply, line, quick, QUICK };
 })();

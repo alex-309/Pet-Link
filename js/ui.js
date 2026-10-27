@@ -5,6 +5,7 @@
   const Paw = (window.Paw = window.Paw || {});
   const C = Paw.config;
   const U = Paw.util;
+  const t = (k, v) => Paw.i18n.t(k, v);
 
   const icon = (name, cls) => `<svg class="icon${cls ? ' ' + cls : ''}" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
 
@@ -14,37 +15,53 @@
   }
   function moodChip(mood) {
     const m = C.MOODS[mood] || C.MOODS.happy;
-    return `<span class="chip">${icon(m.icon)}${m.label}</span>`;
+    return `<span class="chip">${icon(m.icon)}${U.esc(t(m.label))}</span>`;
   }
   function activityChip(activity, species) {
     const act = C.ACTIVITIES[activity] ? activity : 'resting';
-    return `<span class="chip">${icon(C.ACTIVITIES[act].icon)}${U.esc(C.activityLabel(species, act))}</span>`;
+    return `<span class="chip">${icon(C.ACTIVITIES[act].icon)}${U.esc(activityName(species, act))}</span>`;
   }
   function battery(pct) {
     const p = Math.round(pct);
     const level = p < 20 ? 'low' : p < 40 ? 'mid' : 'ok';
-    return `<span class="battery battery--${level}"><svg class="battery__icon" viewBox="0 0 26 14" aria-hidden="true" focusable="false"><rect class="battery__case" x="0.75" y="0.75" width="21.5" height="12.5" rx="3"/><rect class="battery__fill" x="2.75" y="2.75" width="${(17.5 * p / 100).toFixed(1)}" height="8.5" rx="1.5"/><path class="battery__tip" d="M24.5 5v4"/></svg><span><span class="visually-hidden">Collar battery </span>${p}%</span></span>`;
+    return `<span class="battery battery--${level}"><svg class="battery__icon" viewBox="0 0 26 14" aria-hidden="true" focusable="false"><rect class="battery__case" x="0.75" y="0.75" width="21.5" height="12.5" rx="3"/><rect class="battery__fill" x="2.75" y="2.75" width="${(17.5 * p / 100).toFixed(1)}" height="8.5" rx="1.5"/><path class="battery__tip" d="M24.5 5v4"/></svg><span><span class="visually-hidden">${U.esc(t('Collar battery'))} </span>${Paw.i18n.num(p / 100, { style: 'percent' })}</span></span>`;
   }
   // A toggle with role="switch". Give it a visible `label`, or point `labelledby` at
-  // visible text elsewhere (then the button shows only the track).
+  // visible text elsewhere (then the button shows only the track). `srLabel` is a fuller
+  // name for screen readers ("Biscuit's translator") that contains the visible label.
   function switchButton(o) {
     const attrs = (o.petId ? ` data-pet="${U.esc(o.petId)}"` : '') + (o.key ? ` data-key="${o.key}"` : '') +
-      (o.labelledby ? ` aria-labelledby="${o.labelledby}"` : '') + (o.describedby ? ` aria-describedby="${o.describedby}"` : '');
-    const label = o.label
-      ? `<span class="switch__label">${o.srPrefix ? `<span class="visually-hidden">${U.esc(o.srPrefix)} </span>` : ''}${U.esc(o.label)}</span>`
-      : '';
+      (o.labelledby ? ` aria-labelledby="${o.labelledby}"` : '') + (o.describedby ? ` aria-describedby="${o.describedby}"` : '') +
+      (o.srLabel ? ` aria-label="${U.esc(o.srLabel)}"` : '');
+    const label = o.label ? `<span class="switch__label">${U.esc(o.label)}</span>` : '';
     return `<button type="button" class="switch" role="switch" id="${U.esc(o.id)}" aria-checked="${o.on ? 'true' : 'false'}" data-action="${o.action}"${attrs}>
       <span class="switch__track" aria-hidden="true"><span class="switch__thumb">${icon('check')}</span></span>${label}</button>`;
   }
   const language = (code) => C.LANGUAGES.find((l) => l.code === code) || C.LANGUAGES[0];
   const petColor = (pet) => `var(--pet-${pet.slot})`;
-  const possessive = (name) => (/s$/i.test(name) ? name + '’' : name + '’s');
+  // Display names for things stored in English (activities, moods, zones, log titles).
+  const activityName = (species, act) => t(C.activityLabel(species, act));
+  const zoneName = (zone) => t(zone);
+  const speciesName = (species) => t((C.SPECIES[species] || C.SPECIES.dog).label);
 
+  // Sound descriptions like "*play bow* Woof!": the *stage directions* are translated, the barks stay.
+  function soundText(text) {
+    if (!text) return '';
+    if (Paw.i18n.has(Paw.i18n.lang, text)) return t(text);
+    return String(text).replace(/\*([^*]+)\*/g, (m, inner) => '*' + t(inner) + '*');
+  }
+
+  // A language in its own name, plus its name in the interface language when that differs:
+  // "Français (French)" in English, "Français (francés)" in Spanish, just "Français" in French.
+  function languageLabel(l) {
+    const local = Paw.i18n.languageName(l.code);
+    return l.label.toLocaleLowerCase() === local.toLocaleLowerCase() ? l.label : `${l.label} (${local})`;
+  }
   function languageOptions(selected) {
-    return C.LANGUAGES.map((l) => `<option value="${l.code}" lang="${l.code}"${l.code === selected ? ' selected' : ''}>${U.esc(l.label)}${l.label !== l.english ? ' (' + l.english + ')' : ''}</option>`).join('');
+    return C.LANGUAGES.map((l) => `<option value="${l.code}" lang="${l.code}"${l.code === selected ? ' selected' : ''}>${U.esc(languageLabel(l))}</option>`).join('');
   }
   function petOptions(selected, withAll) {
-    return (withAll ? `<option value="all"${selected === 'all' ? ' selected' : ''}>All pets</option>` : '') +
+    return (withAll ? `<option value="all"${selected === 'all' ? ' selected' : ''}>${U.esc(t('All pets'))}</option>` : '') +
       Paw.store.state.pets.map((p) => `<option value="${U.esc(p.id)}"${p.id === selected ? ' selected' : ''}>${U.esc(p.name)}</option>`).join('');
   }
 
@@ -74,7 +91,7 @@
     el.className = 'toast toast--' + (o.tone || 'info');
     el.innerHTML = `${icon(o.icon || 'info', 'toast__icon')}<p class="toast__msg"></p>
       ${o.actionLabel ? `<button type="button" class="btn btn-tertiary btn-sm toast__action">${U.esc(o.actionLabel)}</button>` : ''}
-      <button type="button" class="icon-btn icon-btn--sm toast__close" aria-label="Dismiss notification">${icon('x')}</button>`;
+      <button type="button" class="icon-btn icon-btn--sm toast__close" aria-label="${U.esc(t('Dismiss notification'))}">${icon('x')}</button>`;
     el.querySelector('.toast__msg').textContent = message;
     host.appendChild(el);
     while (host.children.length > 3) host.firstElementChild.remove();
@@ -147,8 +164,8 @@
             <p class="dialog__text">${U.esc(o.body)}</p>
           </div>
           <div class="dialog__actions">
-            <button type="button" class="btn btn-secondary" data-close>Cancel</button>
-            <button type="button" class="btn ${o.danger ? 'btn-danger' : 'btn-primary'}" id="confirm-ok">${U.esc(o.confirmLabel || 'Confirm')}</button>
+            <button type="button" class="btn btn-secondary" data-close>${U.esc(t('Cancel'))}</button>
+            <button type="button" class="btn ${o.danger ? 'btn-danger' : 'btn-primary'}" id="confirm-ok">${U.esc(o.confirmLabel || t('Confirm'))}</button>
           </div>`,
         initialFocus: '[data-close]',
         onOpen(el) {
@@ -164,28 +181,37 @@
   }
 
   // ---- live values -------------------------------------------------------------------
+  // One phrase per direction reads naturally in every language ("120 m al norte de casa").
+  const FROM_HOME = {
+    N: '{distance} north of home', NE: '{distance} northeast of home', E: '{distance} east of home', SE: '{distance} southeast of home',
+    S: '{distance} south of home', SW: '{distance} southwest of home', W: '{distance} west of home', NW: '{distance} northwest of home',
+  };
   function distanceText(r) {
-    if (r.zone === 'Home') return 'At home';
-    if (r.zone === 'Backyard') return 'In the backyard';
+    if (r.zone === 'Home') return t('At home');
+    if (r.zone === 'Backyard') return t('In the backyard');
     const h = Paw.sim.fromHome(r);
-    return U.fmtDistance(h.meters, { short: true }) + ' ' + (U.COMPASS_WORDS[h.dir] || '') + ' of home';
+    return t(FROM_HOME[h.dir] || '{distance} from home', { distance: U.fmtDistance(h.meters, { short: true }) });
   }
   function safeStatus(r) {
-    if (r.inZone) return status('good', 'Inside safe zone');
-    return r.route && C.ACTIVITIES[r.activity].withOwner ? status('good', 'Out on a walk') : status('warning', 'Outside safe zone');
+    if (r.inZone) return status('good', t('Inside safe zone'));
+    return r.route && C.ACTIVITIES[r.activity].withOwner ? status('good', t('Out on a walk')) : status('warning', t('Outside safe zone'));
   }
   function breathText(pet, r) {
-    if (pet.species === 'dog' && r.breath > 60) return 'Panting';
-    return Math.round(r.breath) + ' / min';
+    if (pet.species === 'dog' && r.breath > 60) return t('Panting');
+    return t('{n} / min', { n: Math.round(r.breath) });
+  }
+  function hrNote(pet, r) {
+    const s = Paw.sim.hrStatus(pet, r);
+    return t(s.note, { activity: Paw.i18n.lower(activityName(pet.species, r.activity)) });
   }
   const LIVE = {
     hr: (pet, r) => String(Math.round(r.hr)),
-    'hr-status': (pet, r) => { const s = Paw.sim.hrStatus(pet, r); return status(s.level, s.label); },
-    'hr-note': (pet, r) => Paw.sim.hrStatus(pet, r).note,
+    'hr-status': (pet, r) => { const s = Paw.sim.hrStatus(pet, r); return status(s.level, t(s.label)); },
+    'hr-note': (pet, r) => hrNote(pet, r),
     activity: (pet, r) => activityChip(r.activity, pet.species),
-    'activity-text': (pet, r) => C.activityLabel(pet.species, r.activity),
-    'pack-sub': (pet, r) => C.activityLabel(pet.species, r.activity) + ' · ' + Math.round(r.hr) + ' bpm',
-    zone: (pet, r) => r.zone,
+    'activity-text': (pet, r) => activityName(pet.species, r.activity),
+    'pack-sub': (pet, r) => activityName(pet.species, r.activity) + ' · ' + t('{n} bpm', { n: Math.round(r.hr) }),
+    zone: (pet, r) => zoneName(r.zone),
     distance: (pet, r) => distanceText(r),
     safe: (pet, r) => safeStatus(r),
     battery: (pet) => battery(pet.device.battery),
@@ -195,7 +221,7 @@
     steps: (pet) => U.fmtNumber(Paw.store.statsFor(pet.id).steps),
     'dist-today': (pet) => U.fmtDistance(Paw.store.statsFor(pet.id).distance),
     active: (pet) => U.fmtDuration(Paw.store.statsFor(pet.id).activeSec),
-    fix: (pet, r) => 'Updated ' + U.fmtAgo(r.lastFix),
+    fix: (pet, r) => t('Updated {ago}', { ago: U.fmtAgo(r.lastFix) }),
   };
   const HTML_KEYS = new Set(['hr-status', 'activity', 'safe', 'battery', 'mood']);
 
@@ -255,7 +281,8 @@
   }
 
   Paw.ui = {
-    icon, status, moodChip, activityChip, battery, switchButton, language, petColor, possessive,
+    icon, status, moodChip, activityChip, battery, switchButton, language, petColor,
+    activityName, zoneName, speciesName, languageLabel, soundText,
     languageOptions, petOptions, announce, toast, openDialog, closeDialog, confirm: confirmDialog,
     refreshLive, live, beatingHeart, refreshAvatars, avatar, distanceText,
   };

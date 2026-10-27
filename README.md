@@ -1,6 +1,6 @@
 # Pet-Link
 
-A demo app for a fictional smart pet collar: live location, heart rate and activity tracking, logs, and a just-for-fun pet translator. You can talk to your pet and hear it answer, or listen in on its made-up thoughts, out loud in seven languages.
+A demo app for a fictional smart pet collar: live location, heart rate and activity tracking, logs, and a just-for-fun pet translator. You can talk to your pet and hear it answer, or listen in on its made-up thoughts, out loud in seven languages. The whole app is available in the same seven languages.
 
 > **Everything is simulated.** The app isn't connected to any device. Locations, health readings and translations are generated for demonstration. They are not real, medical or veterinary information.
 
@@ -25,14 +25,20 @@ There's nothing to install or build.
 | Health | Live heart rate with an ECG-style trace and the usual resting range, today's distance, steps, active time, sleep, temperature and breathing, plus 5-minute, 1-hour and 12-hour history |
 | Translator | A conversation with your pet: type, tap a suggestion or use the microphone, and it answers out loud. **Listen in** hears what it's thinking. Also the collar's voice box: power, volume and mute, language (English, Spanish, French, German, Italian, Portuguese, Japanese), voice, voice style and a speaker test |
 | Logs | Thoughts and feelings plus activity (walks, meals, naps, location, health and collar events), with filters, search, your own entries, and CSV or JSON export |
-| Settings | Manage up to six pets (dogs, cats, rabbits, birds, hamsters, horses and turtles), theme, animation, units, demo options, the language you speak to your pets, data, and the legal notes |
+| Settings | Manage up to six pets (dogs, cats, rabbits, birds, hamsters, horses and turtles), app language, theme, animation, units, demo options, the language you speak to your pets, data, and the legal notes |
 
 ## Talking to your pet
 
-On the Translator page, say something to the selected pet. It understands greetings, walks, food, play, bedtime, baths and vet visits, praise, scolding and "How are you?" in all seven languages, and answers in a way that suits its species and mood. Anything else gets a playful answer anyway. Replies are always in the pet's translator language, so you can ask in English and hear the answer in French. Every exchange is saved in Logs with what you said.
+On the Translator page, say something to the selected pet. Your words play through its collar as its own made-up animal sounds (barks for a dog, meows for a cat, chirps for a bird, and so on), shown under what you said, and then it answers. It understands greetings, walks, food, play, bedtime, baths and vet visits, praise, scolding and "How are you?" in all seven languages, and answers in a way that suits its species and mood. Anything else gets a playful answer anyway. Replies are always in the pet's translator language, so you can ask in English and hear the answer in French. Every exchange is saved in Logs with what you said.
 
 - **Typing** works in every browser.
-- **The microphone** works in Chrome, Edge and Safari. Firefox doesn't support speech recognition, so the button is hidden there. Pet-Link asks before using it the first time. Pick the language you speak in Settings → Talking to pets.
+- **The microphone** works in Chrome, Edge and Safari. Firefox doesn't support speech recognition, so the button is hidden there. Pet-Link asks before using it the first time. It listens in the app's language unless you pick another in Settings → Talking to pets.
+
+## Languages
+
+The globe button in the top bar switches the whole app between English, Spanish, French, German, Italian, Portuguese and Japanese. The same choice is in Settings → Language and appearance and on the welcome screen. On first visit the app follows the browser's language. Changing it also changes the quick phrases, the language the microphone listens for, and the default translator language for new pets. Each pet keeps speaking its own translator language.
+
+Interface text is written in English and looked up with `t('English text')`. The translations live in `js/i18n/<language>.js`, keyed by that English text; anything missing falls back to English. When you add or change interface text, add the same key to all six language files. Log entries are stored in English and translated when shown, so changing language also changes older entries.
 
 ## Voices
 
@@ -44,7 +50,8 @@ If a language has no voice on the device, French on some computers for example, 
 
 - **Demo controls** (top bar) make a pet sleep, eat, walk (dogs and horses), play or run, say something on cue, wander past the safe zone, get spooked (heart rate jumps) or drain the battery. You can also speed the simulation up to 4×.
 - **Quiet mode** (speaker icon) silences every voice box. Translations still appear as text.
-- **Pause** (pause icon) freezes all live data.
+- **Pause** (pause icon) freezes all live data. On phones it's in Demo controls and Settings.
+- **Globe** switches the app's language.
 - **Sun/moon** switches between the light "day at the park" theme and the dark "evening walk" theme. Settings also has a "Match device" option.
 - Browsers only allow sound after the first click or tap on the page.
 - On iPhone and iPad, speech always follows the device volume; the in-app slider can't change it there.
@@ -55,14 +62,18 @@ If a language has no voice on the device, French on some computers for example, 
 index.html            App shell, navigation and icon set
 css/styles.css        Design tokens (top of file), layout, components, light and dark themes
 js/config.js          App name, species, activities, moods, languages, the fictional map
+js/i18n.js            The app's language: looks up interface text, dates and numbers
+js/i18n/              Interface text in Spanish, French, German, Italian, Portuguese and Japanese
 js/phrases.js         The invented translations in all seven languages
 js/talk.js            Understands what you say to a pet and picks its answer
+js/petsounds.js       Plays what you say as the pet's own synthesized animal sounds
 js/avatars.js         The pet illustrations
 js/sim.js             The simulated collar: activity, GPS, heart rate, battery, translations
 js/store.js           Pets, settings and logs, saved in this browser
 js/voice.js           Text-to-speech, voice choice, speech recognition and generated sounds
 js/map.js, charts.js  The illustrated map and the charts
 js/ui.js, dialogs.js  Shared components and dialogs
+js/util.js            Small helpers: formatting, storage, files
 js/views/             One file per page
 js/app.js             Routing and wiring
 sw.js                 Offline support

@@ -79,6 +79,8 @@
   const EXCITED = { greet: 1, walk: 1, food: 1, play: 1 };
 
   const label = (species) => (SPECIES[species] || SPECIES.dog).label;
+  // "In Dog", "Auf Hündisch", "犬語で": the label over your words played as pet sounds.
+  const inLabel = (species) => Paw.i18n.t('In ' + label(species));
 
   // Split what was said into phrases, each with its word count and ending.
   function phrasesOf(text) {
@@ -536,5 +538,5 @@
     Paw.voice.on((type) => { if (type === 'stop') stop(); });
   }
 
-  Paw.petSounds = { init, translate, render, play, stop, label, SPECIES };
+  Paw.petSounds = { init, translate, render, play, stop, label, inLabel, SPECIES };
 })();

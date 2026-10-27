@@ -5,6 +5,7 @@
   const C = Paw.config;
   const U = Paw.util;
   const ui = Paw.ui;
+  const t = (k, v) => Paw.i18n.t(k, v);
   const ROUTES = ['home', 'map', 'health', 'translator', 'logs', 'preferences'];
   const main = () => U.$('#main-content');
   const settings = () => Paw.store.state.settings;
@@ -16,12 +17,12 @@
   let view = null;
 
   Paw.views.noPets = (title) => `<header class="view-head">
-      <div class="view-head__text"><h1 class="view-title" tabindex="-1">${U.esc(title)}</h1></div>
+      <div class="view-head__text"><h1 class="view-title" tabindex="-1">${U.esc(t(title))}</h1></div>
     </header>
     <section class="empty-state">
-      <h2 class="empty-state__title">No pets yet</h2>
-      <p class="empty-state__text">Add a pet to bring this page to life.</p>
-      <div class="empty-state__actions"><button type="button" class="btn btn-primary" data-action="add-pet">${ui.icon('plus')}Add a pet</button></div>
+      <h2 class="empty-state__title">${U.esc(t('No pets yet'))}</h2>
+      <p class="empty-state__text">${U.esc(t('Add a pet to bring this page to life.'))}</p>
+      <div class="empty-state__actions"><button type="button" class="btn btn-primary" data-action="add-pet">${ui.icon('plus')}${U.esc(t('Add a pet'))}</button></div>
     </section>`;
 
   // ---- theme & motion ---------------------------------------------------------------
@@ -49,7 +50,7 @@
   function updateThemeButton() {
     const dark = effectiveTheme() === 'dark';
     const btn = U.$('#btn-theme');
-    const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+    const label = dark ? t('Switch to light mode') : t('Switch to dark mode');
     btn.setAttribute('aria-label', label);
     btn.title = label;
     btn.innerHTML = ui.icon(dark ? 'sun' : 'moon');
@@ -63,7 +64,32 @@
   // ---- shell -----------------------------------------------------------------------
   function setAppName() {
     U.$$('[data-app-name]').forEach((el) => { el.textContent = C.APP_NAME; });
-    U.$$('[data-app-name-label]').forEach((el) => el.setAttribute('aria-label', C.APP_NAME + ' home'));
+    U.$$('[data-app-name-label]').forEach((el) => el.setAttribute('aria-label', t('{app} home', { app: C.APP_NAME })));
+  }
+
+  // ---- interface language ----------------------------------------------------------
+  // The globe pill in the top bar: always one tap away. Each language is listed in its own name.
+  function renderLangPicker() {
+    const select = U.$('#ui-lang');
+    if (!select) return;
+    const current = Paw.i18n.lang;
+    select.innerHTML = C.LANGUAGES.map((l) => `<option value="${l.short}" lang="${l.code}"${l.short === current ? ' selected' : ''}>${U.esc(l.label)}</option>`).join('');
+    // Keep the English word too, so someone who can't read the current language can still find it.
+    const label = current === 'en' ? 'Language' : `${t('Language')} (Language)`;
+    select.setAttribute('aria-label', label);
+    U.$('#lang-pick').title = label;
+    U.$('#lang-code').textContent = current.toUpperCase();
+  }
+  function applyLanguage() {
+    Paw.i18n.set(settings().uiLang);
+    Paw.i18n.applyStatic(document);
+    renderLangPicker();
+    setAppName();
+    renderPack();
+    renderChips();
+    updateStatus();
+    updateThemeButton();
+    if (view) document.title = routeName === 'home' ? C.APP_NAME : `${t(view.title)} · ${C.APP_NAME}`;
   }
 
   function renderPack() {
@@ -81,7 +107,7 @@
     const s = Paw.store.state;
     const host = U.$('#pet-chips');
     host.innerHTML = s.pets.map((p) => `<button type="button" class="pet-chip" id="chip-${U.esc(p.id)}" data-action="select-pet" data-pet="${U.esc(p.id)}" aria-pressed="${p.id === s.selectedPetId}" style="--pet:${ui.petColor(p)}">${ui.avatar(p, 'xs')}<span>${U.esc(p.name)}</span></button>`).join('') +
-      (s.pets.length < C.MAX_PETS ? `<button type="button" class="pet-chip pet-chip--add" data-action="add-pet" aria-label="Add a pet" title="Add a pet">${ui.icon('plus')}</button>` : '');
+      (s.pets.length < C.MAX_PETS ? `<button type="button" class="pet-chip pet-chip--add" data-action="add-pet" aria-label="${U.esc(t('Add a pet'))}" title="${U.esc(t('Add a pet'))}">${ui.icon('plus')}</button>` : '');
     host.hidden = !s.pets.length;
   }
 
@@ -93,16 +119,17 @@
   function updateStatus() {
     const s = settings();
     U.$('#live-status').innerHTML = s.paused
-      ? `<span class="live-dot live-dot--paused" aria-hidden="true"></span>Paused`
-      : `<span class="live-dot" aria-hidden="true"></span>Live<span class="live-status__sub">&nbsp;· demo data</span>`;
+      ? `<span class="live-dot live-dot--paused" aria-hidden="true"></span>${U.esc(t('Paused'))}`
+      : `<span class="live-dot" aria-hidden="true"></span>${U.esc(t('Live'))}<span class="live-status__sub">&nbsp;· ${U.esc(t('demo data'))}</span>`;
     const pause = U.$('#btn-pause');
-    const pauseLabel = s.paused ? 'Resume live data' : 'Pause live data';
+    const pauseLabel = s.paused ? t('Resume live data') : t('Pause live data');
     pause.setAttribute('aria-label', pauseLabel);
     pause.title = pauseLabel;
     pause.innerHTML = ui.icon(s.paused ? 'play' : 'pause');
     const quiet = U.$('#btn-quiet');
     quiet.setAttribute('aria-pressed', String(!!s.quiet));
-    quiet.title = s.quiet ? 'Quiet mode is on: every voice box is silent' : 'Quiet mode: silence every voice box';
+    quiet.setAttribute('aria-label', t('Quiet mode'));
+    quiet.title = s.quiet ? t('Quiet mode is on: every voice box is silent') : t('Quiet mode: silence every voice box');
     quiet.innerHTML = ui.icon(s.quiet ? 'volume-off' : 'volume');
     document.body.classList.toggle('is-paused', !!s.paused);
   }
@@ -130,7 +157,7 @@
       if (a.dataset.routeLink === name) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     });
-    document.title = name === 'home' ? C.APP_NAME : `${view.title} · ${C.APP_NAME}`;
+    document.title = name === 'home' ? C.APP_NAME : `${t(view.title)} · ${C.APP_NAME}`;
     if (o.focus) {
       window.scrollTo(0, 0);
       const h = main().querySelector('h1');
@@ -164,16 +191,16 @@
     const s = settings();
     const explain = (msg, extra) => { if (o.explain) ui.toast(msg, Object.assign({ icon: 'volume-off' }, extra)); };
     if (o.requireOn && !pet.translator.on) {
-      explain(`${ui.possessive(pet.name)} translator is off.`, { actionLabel: 'Turn on', action: () => toggleTranslator(petId) });
+      explain(t("{name}’s translator is off.", { name: pet.name }), { actionLabel: t('Turn on'), action: () => toggleTranslator(petId) });
       return false;
     }
     if (s.quiet) {
-      explain('Quiet mode is on, so voice boxes are silent.', { actionLabel: 'Turn off', action: () => Paw.store.setSetting('quiet', false) });
+      explain(t('Quiet mode is on, so voice boxes are silent.'), { actionLabel: t('Turn off'), action: () => Paw.store.setSetting('quiet', false) });
       return false;
     }
     if (!pet.translator.volume) {
-      explain(`${ui.possessive(pet.name)} voice box volume is at 0%.`, {
-        actionLabel: 'Set to 60%',
+      explain(t("{name}’s voice box volume is at 0%.", { name: pet.name }), {
+        actionLabel: t('Set to 60%'),
         action: () => {
           Paw.store.setTranslator(petId, { volume: 60 });
           if (routeName === 'translator') refreshView();
@@ -182,7 +209,7 @@
       return false;
     }
     if (!Paw.voice.supported) {
-      explain('This browser can’t speak out loud. Translations still appear as text.', { icon: 'info' });
+      explain(t('This browser can’t speak out loud. Translations still appear as text.'), { icon: 'info' });
       return false;
     }
     if (Paw.voice.listening) return false; // don't talk into the microphone
@@ -223,15 +250,15 @@
     if (!pet || !tr) return Promise.resolve(0);
     const explain = (msg, extra) => { if (o.explain) ui.toast(msg, Object.assign({ icon: 'volume-off' }, extra)); };
     if (!pet.translator.on) {
-      explain(`${ui.possessive(pet.name)} translator is off.`, { actionLabel: 'Turn on', action: () => toggleTranslator(petId) });
+      explain(t("{name}’s translator is off.", { name: pet.name }), { actionLabel: t('Turn on'), action: () => toggleTranslator(petId) });
       return Promise.resolve(0);
     }
     if (settings().quiet) {
-      explain('Quiet mode is on, so voice boxes are silent.', { actionLabel: 'Turn off', action: () => Paw.store.setSetting('quiet', false) });
+      explain(t('Quiet mode is on, so voice boxes are silent.'), { actionLabel: t('Turn off'), action: () => Paw.store.setSetting('quiet', false) });
       return Promise.resolve(0);
     }
     if (!pet.translator.volume) {
-      explain(`${ui.possessive(pet.name)} voice box volume is at 0%.`);
+      explain(t("{name}’s voice box volume is at 0%.", { name: pet.name }));
       return Promise.resolve(0);
     }
     return Paw.petSounds.play(pet, tr, (pet.translator.volume / 100) * 0.9).catch(() => 0);
@@ -260,21 +287,21 @@
     Paw.store.setSetting('paused', paused);
     if (paused) Paw.voice.stop();
     else Paw.sim.resume();
-    ui.announce(paused ? 'Live data paused.' : 'Live data resumed.');
+    ui.announce(paused ? t('Live data paused.') : t('Live data resumed.'));
   }
 
   async function removePet(petId) {
     const pet = getPet(petId);
     if (!pet) return;
     const ok = await ui.confirm({
-      title: `Remove ${pet.name}?`,
-      body: `This deletes ${ui.possessive(pet.name)} collar, logs and history from this device. You can’t undo this.`,
-      confirmLabel: 'Remove',
+      title: t('Remove {name}?', { name: pet.name }),
+      body: t("This deletes {name}’s collar, logs and history from this device. You can’t undo this.", { name: pet.name }),
+      confirmLabel: t('Remove'),
       danger: true,
     });
     if (!ok) return;
     Paw.store.removePet(petId);
-    ui.toast(`${pet.name} was removed.`, { icon: 'check' });
+    ui.toast(t('{name} was removed.', { name: pet.name }), { icon: 'check' });
   }
 
   function pingCollar(petId) {
@@ -282,14 +309,14 @@
     if (!pet) return;
     if (!settings().quiet) Paw.voice.ping(0.6);
     Paw.store.addLog({ kind: 'activity', type: 'device', petId, ts: Date.now(), title: 'Collar pinged', detail: 'Beeped three times', source: 'app' });
-    ui.toast(settings().quiet ? `Pinged ${ui.possessive(pet.name)} collar. Quiet mode kept this device silent.` : `${ui.possessive(pet.name)} collar beeped three times.`, { icon: 'bell' });
+    ui.toast(settings().quiet ? t("Pinged {name}’s collar. Quiet mode kept this device silent.", { name: pet.name }) : t("{name}’s collar beeped three times.", { name: pet.name }), { icon: 'bell' });
   }
 
   function deleteLog(id) {
     const entry = Paw.store.state.logs.find((l) => l.id === id);
     if (!entry) return;
     Paw.store.removeLogs((l) => l.id === id);
-    ui.toast('Entry deleted.', { icon: 'trash', actionLabel: 'Undo', action: () => Paw.store.addLog(entry) });
+    ui.toast(t('Entry deleted.'), { icon: 'trash', actionLabel: t('Undo'), action: () => Paw.store.addLog(entry) });
   }
 
   const GLOBAL = {
@@ -319,7 +346,7 @@
         // the new thought is spoken like any other.
         if (!r.lastThought) {
           if (pet.translator.on) Paw.sim.think(pet.id, { manual: true });
-          else ui.toast(`${ui.possessive(pet.name)} translator is off.`, { icon: 'volume-off', actionLabel: 'Turn on', action: () => toggleTranslator(pet.id) });
+          else ui.toast(t("{name}’s translator is off.", { name: pet.name }), { icon: 'volume-off', actionLabel: t('Turn on'), action: () => toggleTranslator(pet.id) });
           return;
         }
         speakFor(pet.id, r.lastThought.text, { lang: r.lastThought.lang, key: r.lastThought.key, requireOn: true, explain: true });
@@ -349,20 +376,22 @@
         refreshView();
       },
       'clear-logs': async () => {
-        const ok = await ui.confirm({ title: 'Clear all logs?', body: 'This deletes every log entry for every pet on this device. Pets and settings stay.', confirmLabel: 'Clear logs', danger: true });
+        const ok = await ui.confirm({ title: t('Clear all logs?'), body: t('This deletes every log entry for every pet on this device. Pets and settings stay.'), confirmLabel: t('Clear logs'), danger: true });
         if (!ok) return;
         Paw.store.removeLogs(() => true);
-        ui.toast('All logs cleared.', { icon: 'check' });
+        ui.toast(t('All logs cleared.'), { icon: 'check' });
       },
       'reset-demo': async () => {
-        const ok = await ui.confirm({ title: 'Reset the demo?', body: 'This deletes your pets, logs and settings on this device and brings back the sample pack.', confirmLabel: 'Reset', danger: true });
+        const ok = await ui.confirm({ title: t('Reset the demo?'), body: t('This deletes your pets, logs and settings on this device and brings back the sample pack.'), confirmLabel: t('Reset'), danger: true });
         if (!ok) return;
         Paw.voice.stop();
         Paw.store.resetAll();
-        ui.toast('Demo reset. The sample pack is back.', { icon: 'refresh' });
+        ui.toast(t('Demo reset. The sample pack is back.'), { icon: 'refresh' });
       },
     },
-    changes: {},
+    changes: {
+      'ui-lang': (el) => Paw.store.setSetting('uiLang', el.value),
+    },
     inputs: {
       'zone-radius': (el) => {
         const v = Number(el.value);
@@ -396,7 +425,7 @@
     Paw.store.addLog(entry);
     // Lines the person asked for (a reply, Listen in, Play) say why they're silent; background chatter doesn't.
     if (pet.translator.on) speakFor(pet.id, t.text, { lang: t.lang, key: t.key, chime: true, explain: t.manual });
-    if (settings().announce) ui.announce(`${pet.name} says:`, { text: t.text, lang: t.lang });
+    if (settings().announce) ui.announce(Paw.i18n.t('{name} says:', { name: pet.name }), { text: t.text, lang: t.lang });
     ui.refreshAvatars(pet.id);
     if (view && view.on) view.on('thought', t, main());
   }
@@ -408,8 +437,8 @@
       zoneAlerted.add(pet.id);
       Paw.store.addLog({ kind: 'activity', type: 'zone', petId: pet.id, ts: Date.now(), title: 'Left the safe zone', detail: 'Last seen: ' + d.zone, source: 'collar' });
       if (settings().zoneAlerts) {
-        ui.toast(`${pet.name} left the safe zone. Last seen: ${d.zone}.`, {
-          tone: 'warning', icon: 'alert', duration: 9000, actionLabel: 'Show on map',
+        ui.toast(t('{name} left the safe zone. Last seen: {place}.', { name: pet.name, place: ui.zoneName(d.zone) }), {
+          tone: 'warning', icon: 'alert', duration: 9000, actionLabel: t('Show on map'),
           action: () => {
             Paw.store.selectPet(pet.id);
             location.hash = 'map';
@@ -419,7 +448,7 @@
     } else if (d.inZone && zoneAlerted.has(pet.id)) {
       zoneAlerted.delete(pet.id);
       Paw.store.addLog({ kind: 'activity', type: 'zone', petId: pet.id, ts: Date.now(), title: 'Back inside the safe zone', source: 'collar' });
-      if (settings().zoneAlerts) ui.toast(`${pet.name} is back inside the safe zone.`, { icon: 'shield' });
+      if (settings().zoneAlerts) ui.toast(t('{name} is back inside the safe zone.', { name: pet.name }), { icon: 'shield' });
     }
   }
 
@@ -442,6 +471,12 @@
             if (radio) radio.checked = true;
           }
           if (d.key === 'motion') applyMotion();
+          if (d.key === 'uiLang') {
+            applyLanguage();
+            refreshView();
+            ui.announce(t('Language changed to {language}.', { language: Paw.i18n.languageName(Paw.i18n.locale) }));
+            break;
+          }
           if (d.key === 'paused' || d.key === 'quiet') updateStatus();
           if (d.key === 'quiet' && d.value) Paw.voice.stop();
           U.$$(`[data-action="toggle-setting"][data-key="${d.key}"]`).forEach((b) => b.setAttribute('aria-checked', String(!!d.value)));
@@ -520,8 +555,8 @@
           const pet = getPet(d.petId);
           if (!pet) break;
           const pct = Math.round(d.battery);
-          ui.toast(`${ui.possessive(pet.name)} collar battery is low (${pct}%).`, {
-            tone: 'warning', icon: 'alert', actionLabel: 'Charge it', action: () => Paw.store.setBattery(pet.id, 100),
+          ui.toast(t("{name}’s collar battery is low ({pct}).", { name: pet.name, pct: Paw.i18n.num(pct / 100, { style: 'percent' }) }), {
+            tone: 'warning', icon: 'alert', actionLabel: t('Charge it'), action: () => Paw.store.setBattery(pet.id, 100),
           });
           Paw.store.addLog({ kind: 'activity', type: 'device', petId: pet.id, ts: Date.now(), title: 'Collar battery low', detail: pct + '% left', source: 'collar' });
           break;
@@ -565,6 +600,9 @@
 
   function init() {
     Paw.store.init();
+    Paw.i18n.set(settings().uiLang);
+    Paw.i18n.applyStatic(document);
+    renderLangPicker();
     applyTheme();
     applyMotion();
     setAppName();

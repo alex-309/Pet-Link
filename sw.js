@@ -1,5 +1,5 @@
 /* Offline support. Network first (so edits show up right away), cached copy when offline. */
-const CACHE = 'petlink-v5';
+const CACHE = 'petlink-v6';
 const ASSETS = [
   './',
   'index.html',
@@ -8,6 +8,13 @@ const ASSETS = [
   'js/config.js',
   'js/phrases.js',
   'js/util.js',
+  'js/i18n.js',
+  'js/i18n/es.js',
+  'js/i18n/fr.js',
+  'js/i18n/de.js',
+  'js/i18n/it.js',
+  'js/i18n/pt.js',
+  'js/i18n/ja.js',
   'js/avatars.js',
   'js/sim.js',
   'js/talk.js',
